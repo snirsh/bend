@@ -21,7 +21,10 @@ export type Joints = Readonly<Record<JointName, number>>;
  */
 export type Pose = { readonly root: Vec2; readonly joints: Joints; readonly grip: Grip };
 
-/** Both hands at `at` (side view), `halfWidth` out from the midline, elbows bending toward `pole`. */
+/**
+ * Both hands at `at` (side view), `halfWidth` out from the midline, elbows bending toward
+ * `pole`, given in the torso's frame: [front of the spine, along it toward the head, out to the side].
+ */
 export type Grip = { readonly at: Vec2; readonly halfWidth: number; readonly pole: Vec3 };
 
 /** Anatomical range per joint, degrees. `trunk` is absolute, so it may point anywhere. */
@@ -51,7 +54,7 @@ export const BODY = {
   heel: 5, // ankle to the back of the heel, along the foot
   toe: 20, // ankle to the tip of the toes
   hipHalfWidth: 9,
-  shoulderHalfWidth: 18,
+  shoulderHalfWidth: 20,
 } as const;
 
 export type Limbs = {
@@ -109,7 +112,10 @@ export const skeleton = ({ root, joints: j, grip }: Pose): Skeleton => {
     const toe = step(ankle, foot, BODY.toe);
     const shoulder: Vec3 = [chest[0], chest[1], side * BODY.shoulderHalfWidth];
     const target: Vec3 = [grip.at[0], grip.at[1], side * grip.halfWidth];
-    const { elbow, wrist } = reach(shoulder, target, [grip.pole[0], grip.pole[1], side * grip.pole[2]]);
+    const [pf, pa, ps] = grip.pole;
+    const [fx, fy] = dir(trunk + 90);
+    const [ax, ay] = dir(trunk);
+    const { elbow, wrist } = reach(shoulder, target, [pf * fx + pa * ax, pf * fy + pa * ay, side * ps]);
     return { hip, knee, ankle, heel, toe, shoulder, elbow, wrist, grip: target };
   };
 
@@ -160,5 +166,5 @@ export const STANDING: Pose = {
   root: [0, BODY.ankleHeight + BODY.shin + BODY.thigh],
   joints: { trunk: 0, neck: 0, hip: 0, knee: 0, ankle: 0 },
   // Arms hanging, hands by the thighs.
-  grip: { at: [0, BODY.ankleHeight + BODY.shin + BODY.thigh + BODY.torso - BODY.upperArm - BODY.forearm - BODY.hand * 0.45 + 2], halfWidth: 20, pole: [-1, 0, 0] },
+  grip: { at: [0, BODY.ankleHeight + BODY.shin + BODY.thigh + BODY.torso - BODY.upperArm - BODY.forearm - BODY.hand * 0.45 + 2], halfWidth: 20, pole: [-1, 0, 0] }, // elbows bend backward
 };

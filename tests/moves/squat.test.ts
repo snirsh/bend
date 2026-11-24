@@ -23,11 +23,10 @@ describe("Smith squat loop, sampled 360 times", () => {
     for (const { body } of loop) expect(body.near.knee[0]).toBeLessThanOrEqual(body.near.toe[0] + 3);
   });
 
-  test("neutral spine: the trunk leans between 0 and 50 degrees and the head stays in line", () => {
+  test("the trunk leans forward only between 0 and 45 degrees", () => {
     for (const { pose } of loop) {
       expect(pose.joints.trunk).toBeGreaterThanOrEqual(0);
-      expect(pose.joints.trunk).toBeLessThanOrEqual(50);
-      expect(Math.abs(pose.joints.trunk + pose.joints.neck)).toBeLessThanOrEqual(30);
+      expect(pose.joints.trunk).toBeLessThanOrEqual(45);
     }
   });
 
@@ -49,6 +48,44 @@ describe("Smith squat loop, sampled 360 times", () => {
       const back = Math.hypot(pose.grip.at[0] - body.chest[0], pose.grip.at[1] - body.chest[1]);
       expect(back).toBeGreaterThan(4);
       expect(back).toBeLessThan(11);
+    }
+  });
+
+  /** A point in the torso's frame: `along` the spine from the pelvis, `front` of the spine axis (negative = behind). */
+  const inTorso = (body: (typeof loop)[number]["body"], p: readonly number[]) => {
+    const t = Math.atan2(body.chest[0] - body.pelvis[0], body.chest[1] - body.pelvis[1]);
+    const [ax, ay, fx, fy] = [Math.sin(t), Math.cos(t), Math.cos(t), -Math.sin(t)];
+    const dx = p[0]! - body.pelvis[0], dy = p[1]! - body.pelvis[1];
+    return { along: dx * ax + dy * ay, front: dx * fx + dy * fy };
+  };
+
+  test("high bar: the bar sits on the traps, behind the neck and above the shoulder joints", () => {
+    for (const { pose, body } of loop) {
+      const bar = inTorso(body, pose.grip.at);
+      const neck = inTorso(body, body.neck);
+      expect(bar.front).toBeLessThan(neck.front - 8);
+      expect(bar.front).toBeGreaterThan(neck.front - 13);
+      expect(bar.along).toBeGreaterThan(BODY.torso);
+      expect(bar.along).toBeLessThan(neck.along);
+    }
+  });
+
+  test("hands just outside the shoulders; elbows point down and back, below the bar and behind the torso", () => {
+    for (const { pose, body } of loop) {
+      expect(pose.grip.halfWidth).toBeGreaterThan(BODY.shoulderHalfWidth + 6);
+      expect(pose.grip.halfWidth).toBeLessThan(BODY.shoulderHalfWidth + 18);
+      expect(body.near.elbow[1]).toBeLessThan(pose.grip.at[1] - 15);
+      expect(inTorso(body, body.near.elbow).front).toBeLessThan(0);
+    }
+  });
+
+  test("neutral spine: pelvis, chest and neck stay in one line and the head stays in line with the trunk", () => {
+    for (const { pose, body } of loop) {
+      const a = [body.chest[0] - body.pelvis[0], body.chest[1] - body.pelvis[1]];
+      const b = [body.neck[0] - body.chest[0], body.neck[1] - body.chest[1]];
+      expect(Math.abs(a[0]! * b[1]! - a[1]! * b[0]!)).toBeLessThan(1e-9);
+      expect(pose.joints.neck).toBeGreaterThanOrEqual(-15);
+      expect(pose.joints.neck).toBeLessThanOrEqual(5);
     }
   });
 

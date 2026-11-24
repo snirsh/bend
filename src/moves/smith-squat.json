@@ -1,13 +1,13 @@
-{"id":"smith-squat","view":"side","durationMs":3600,"keyPose":6,"anchor":"heel","grip":{"halfWidth":40,"pole":[-0.6,-1,0.7]},"props":[{"kind":"floor","y":0},{"kind":"smith","x":7.5}],"keyframes":[
-    {"t":0,"root":[-0.1,91.9],"joints":{"trunk":13.4,"neck":-4.7,"hip":15.4,"knee":4,"ankle":2},"bar":[7.5,149.8]},
-    {"t":0.1,"root":[-0.1,91.9],"joints":{"trunk":13.4,"neck":-4.7,"hip":15.4,"knee":4,"ankle":2},"bar":[7.5,149.8]},
-    {"t":0.18,"root":[-10,88.9],"joints":{"trunk":23.4,"neck":-8.2,"hip":43.9,"knee":28.1,"ankle":7.6000000000000005},"bar":[7.5,144.5]},
-    {"t":0.26,"root":[-18.2,81.2],"joints":{"trunk":32.1,"neck":-11.2,"hip":70.9,"knee":52,"ankle":13.200000000000001},"bar":[7.5,133.5]},
-    {"t":0.34,"root":[-23.6,70],"joints":{"trunk":38.1,"neck":-13.3,"hip":94.8,"knee":75.5,"ankle":18.8},"bar":[7.5,119.3]},
-    {"t":0.42,"root":[-25.4,56.5],"joints":{"trunk":40.2,"neck":-14.1,"hip":114.2,"knee":98.4,"ankle":24.400000000000002},"bar":[7.5,104.6]},
-    {"t":0.52,"root":[-23.5,42.5],"joints":{"trunk":38,"neck":-13.3,"hip":128,"knee":120,"ankle":30},"bar":[7.5,91.9]},
-    {"t":0.6,"root":[-25.4,56.5],"joints":{"trunk":40.2,"neck":-14.1,"hip":114.2,"knee":98.4,"ankle":24.400000000000002},"bar":[7.5,104.6]},
-    {"t":0.66,"root":[-23.6,70],"joints":{"trunk":38.1,"neck":-13.3,"hip":94.8,"knee":75.5,"ankle":18.8},"bar":[7.5,119.3]},
-    {"t":0.72,"root":[-18.2,81.2],"joints":{"trunk":32.1,"neck":-11.2,"hip":70.9,"knee":52,"ankle":13.200000000000001},"bar":[7.5,133.5]},
-    {"t":0.78,"root":[-10,88.9],"joints":{"trunk":23.4,"neck":-8.2,"hip":43.9,"knee":28.1,"ankle":7.6000000000000005},"bar":[7.5,144.5]},
-    {"t":0.86,"root":[-2.7,91.6],"joints":{"trunk":16,"neck":-5.6,"hip":22.7,"knee":10.1,"ankle":3.4000000000000004},"bar":[7.5,149]}],"steps":[{"keyframe":0,"label":"top"},{"keyframe":3,"label":"lowering"},{"keyframe":6,"label":"bottom"}]}
+{"id":"smith-squat","view":"side","durationMs":3600,"keyPose":6,"anchor":"heel","grip":{"halfWidth":34,"pole":[-0.4,-1,0.4]},"props":[{"kind":"floor","y":0},{"kind":"smith","x":7.5}],"keyframes":[
+    {"t":0,"root":[-0.1,91.9],"joints":{"trunk":17.7,"neck":-6,"hip":19.7,"knee":4,"ankle":2},"bar":[7.5,148.8]},
+    {"t":0.1,"root":[-0.1,91.9],"joints":{"trunk":17.7,"neck":-6,"hip":19.7,"knee":4,"ankle":2},"bar":[7.5,148.8]},
+    {"t":0.18,"root":[-9.6,88.8],"joints":{"trunk":27.3,"neck":-6,"hip":47.8,"knee":28.7,"ankle":8.2},"bar":[7.5,143.6]},
+    {"t":0.26,"root":[-17.4,81],"joints":{"trunk":35.7,"neck":-6,"hip":74.5,"knee":53.2,"ankle":14.4},"bar":[7.5,132.7]},
+    {"t":0.34,"root":[-22.4,69.5],"joints":{"trunk":41.4,"neck":-6,"hip":98.1,"knee":77.3,"ankle":20.599999999999998},"bar":[7.5,118.5]},
+    {"t":0.42,"root":[-23.8,55.7],"joints":{"trunk":43.1,"neck":-6,"hip":117.1,"knee":100.8,"ankle":26.8},"bar":[7.5,103.8]},
+    {"t":0.52,"root":[-21.7,41.4],"joints":{"trunk":40.6,"neck":-6,"hip":130.6,"knee":123,"ankle":33},"bar":[7.5,90.8]},
+    {"t":0.6,"root":[-23.8,55.7],"joints":{"trunk":43.1,"neck":-6,"hip":117.1,"knee":100.8,"ankle":26.8},"bar":[7.5,103.8]},
+    {"t":0.66,"root":[-22.4,69.5],"joints":{"trunk":41.4,"neck":-6,"hip":98.1,"knee":77.3,"ankle":20.599999999999998},"bar":[7.5,118.5]},
+    {"t":0.72,"root":[-17.4,81],"joints":{"trunk":35.7,"neck":-6,"hip":74.5,"knee":53.2,"ankle":14.4},"bar":[7.5,132.7]},
+    {"t":0.78,"root":[-9.6,88.8],"joints":{"trunk":27.3,"neck":-6,"hip":47.8,"knee":28.7,"ankle":8.2},"bar":[7.5,143.6]},
+    {"t":0.86,"root":[-2.6,91.6],"joints":{"trunk":20.2,"neck":-6,"hip":26.9,"knee":10.3,"ankle":3.55},"bar":[7.5,148.1]}],"steps":[{"keyframe":0,"label":"top"},{"keyframe":3,"label":"lowering"},{"keyframe":6,"label":"bottom"}]}
