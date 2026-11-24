@@ -2,6 +2,7 @@ import { Switch, SwitchThumb } from "@ui-sdk/react/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@ui-sdk/react/tooltip";
 import { useEffect, useId, useRef } from "react";
 import type { ExerciseId, LoggedSession, LoggedSet, PrescribedExercise } from "../../engine/types.ts";
+import type { Move } from "../../moves/sample.ts";
 import { devFixtureCues, type Cue } from "../dev-fixture.ts";
 import { COOLDOWN_MS, REST_MS, pause, resume, skip, start, type TimerView } from "../timer.ts";
 import { upNext, type InProgress, type SetSlot } from "../workout.ts";
@@ -176,22 +177,60 @@ const Active = ({
   );
 };
 
-const LoopAndCue = ({ exercise, cue }: { exercise: PrescribedExercise; cue: Cue }) => (
-  <div className="loop-row">
-    {/* Slot for the movement loop (a later change). A still frame until then. */}
-    <div className="loop" role="img" aria-label={`Movement loop slot for ${cue.label.toLowerCase()}, still frame`}>
-      <svg viewBox="0 0 56 56" fill="none" aria-hidden="true">
-        <circle cx="34" cy="10" r="4.2" stroke="currentColor" strokeWidth="1.4" />
-        <path d="M32 14.6 L22 26 L16 24" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M22 26 L20 36 L12 50" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M20 36 L30 50" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-        <path d="M19 28 L8 22 L6 16" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M8 22 L18 20" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      </svg>
+/** Move files by id. Only the loaders are in the critical JS; each file is its own lazy chunk. */
+const moveFiles = import.meta.glob<{ default: Move }>("../../moves/*.json");
+
+/** The slot plays the move's loop once the screen is idle. Until then, and under reduced motion, it shows the poster. */
+const LoopSlot = ({ id, label }: { id: ExerciseId; label: string }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const load = moveFiles[`../../moves/${id}.json`];
+  useEffect(() => {
+    const slot = ref.current;
+    if (!slot || !load) return;
+    let stop: (() => void) | undefined;
+    let cancelled = false;
+    const start = () =>
+      void Promise.all([import("../loop/play.ts"), load()])
+        .then(([loop, file]) => {
+          if (!cancelled) stop = loop.play(slot, file.default);
+        })
+        // Offline with a stale cache or a failed chunk: the poster stays, which is a fine still.
+        .catch(() => undefined);
+    const idle = "requestIdleCallback" in window;
+    const handle = idle ? requestIdleCallback(start, { timeout: 1500 }) : window.setTimeout(start, 300);
+    return () => {
+      cancelled = true;
+      (idle ? cancelIdleCallback : clearTimeout)(handle);
+      stop?.();
+    };
+  }, [load]);
+  return (
+    <div className="loop" ref={ref} role="img" aria-label={`${label} movement loop`}>
+      {load ? (
+        <picture>
+          <source srcSet={`/moves/${id}-light.webp`} media="(prefers-color-scheme: light)" />
+          <img src={`/moves/${id}-dark.webp`} alt="" width={86} height={86} decoding="async" />
+        </picture>
+      ) : (
+        <svg viewBox="0 0 56 56" fill="none" aria-hidden="true">
+          <circle cx="34" cy="10" r="4.2" stroke="currentColor" strokeWidth="1.4" />
+          <path d="M32 14.6 L22 26 L16 24" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M22 26 L20 36 L12 50" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M20 36 L30 50" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+          <path d="M19 28 L8 22 L6 16" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M8 22 L18 20" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+        </svg>
+      )}
       <span className="loop-label" aria-hidden="true">
         loop
       </span>
     </div>
+  );
+};
+
+const LoopAndCue = ({ exercise, cue }: { exercise: PrescribedExercise; cue: Cue }) => (
+  <div className="loop-row">
+    <LoopSlot key={exercise.exerciseId} id={exercise.exerciseId} label={cue.label} />
     <div className="cue">
       <div className="cue-head">
         <span className="kicker">Cue · {cue.label.toLowerCase()}</span>

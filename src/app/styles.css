@@ -138,8 +138,8 @@ button:disabled { cursor: not-allowed; }
 /* Loop slot + cue */
 .loop-row { display: flex; align-items: flex-start; gap: 10px; }
 .loop {
-  width: 72px;
-  height: 72px;
+  width: 88px;
+  height: 88px;
   flex: none;
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -147,8 +147,12 @@ button:disabled { cursor: not-allowed; }
   display: grid;
   place-items: center;
   position: relative;
+  overflow: hidden;
 }
 .loop svg { width: 56px; height: 56px; }
+.loop img, .loop-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* Once the canvas has drawn, it owns the slot; the poster underneath would ghost through. */
+.loop[data-loop] picture { visibility: hidden; }
 .loop-label {
   position: absolute;
   inset: auto 6px 4px;
@@ -167,7 +171,7 @@ button:disabled { cursor: not-allowed; }
   border-radius: var(--radius);
   padding: 8px 10px 9px;
   position: relative;
-  min-height: 72px;
+  min-height: 88px;
 }
 .cue::before {
   content: "";
