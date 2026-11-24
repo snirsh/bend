@@ -68,7 +68,7 @@ bun run e2e        # Playwright against the preview build
 
 **Timers** store absolute end times and recompute on every tick and whenever the page is shown again, so they stay right through a screen lock. A notification at the end appears only when notifications were already allowed, which you can do from the menu.
 
-**Offline.** After the first load, the service worker serves the whole app from its cache. A new build gets a new cache name, and the old cache is deleted once the new worker takes over.
+**Offline.** After the first load, the service worker serves the whole app from its cache. A new build gets a new cache name. When the new worker takes over it keeps the previous cache for one more version, so a page still open on the old build can lazy-load its loop, and deletes older ones.
 
 **Export and import** live in the ⋯ menu. Export downloads every stored session as JSON (`app: "bend"`, `schemaVersion: 1`). Import checks the whole file with the engine's rules and rejects it with the reason if anything is wrong. A valid file is merged: sessions you already have are skipped, and nothing stored is removed or replaced.
 

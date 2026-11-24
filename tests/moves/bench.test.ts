@@ -31,7 +31,9 @@ describe("Bench press loop, sampled 360 times", () => {
     }
   });
 
-  test("the shoulder joints never move: shoulder blades set", () => {
+  // The rig has no shoulder-girdle joint, so this checks the shoulder points stay where they start
+  // (the set position the keyframes put them in), not retraction itself.
+  test("the shoulder joints never ride up or slide: they stay where the rep starts", () => {
     for (const { body } of loop) {
       expect(dist(body.near.shoulder, first.near.shoulder)).toBeLessThan(1e-9);
       expect(dist(body.far.shoulder, first.far.shoulder)).toBeLessThan(1e-9);
