@@ -10,6 +10,9 @@ const first = loop[0]!.body;
 const reach = most(loop, (f) => dist(f.pose.grip.at, f.body.chest));
 const elbowBack = (f: (typeof loop)[number]) => -Math.max(inTorso(f.body, f.body.near.elbow).front, inTorso(f.body, f.body.far.elbow).front);
 const squeeze = most(loop, elbowBack);
+const pad = nearestBox(move, onTorso(first, CHEST));
+const floor = move.props.find((p) => p.kind === "floor");
+const deg = (r: number) => (r * 180) / Math.PI;
 
 describe("Chest-supported row loop, sampled 360 times", () => {
   test("the torso is fixed: pelvis and trunk never move, leaning forward onto the pad", () => {
@@ -22,8 +25,13 @@ describe("Chest-supported row loop, sampled 360 times", () => {
     }
   });
 
+  test("the chest pad inclines 30 to 45 degrees from the floor, along the trunk", () => {
+    expect(pad.tilt ?? 0).toBeGreaterThanOrEqual(30);
+    expect(pad.tilt ?? 0).toBeLessThanOrEqual(45);
+    expect(Math.abs((pad.tilt ?? 0) - (90 - loop[0]!.pose.joints.trunk))).toBeLessThanOrEqual(3);
+  });
+
   test("the chest stays on the pad: the chest surface keeps one distance to it, in contact", () => {
-    const pad = nearestBox(move, onTorso(first, CHEST));
     expect(inTorso(first, pad.at).front).toBeGreaterThan(CHEST.front);
     const gap = sdBox(onTorso(first, CHEST), pad);
     expect(gap).toBeGreaterThanOrEqual(-0.5);
@@ -43,7 +51,6 @@ describe("Chest-supported row loop, sampled 360 times", () => {
   });
 
   test("the arms and hands pass beside the chest pad, never through it", () => {
-    const pad = nearestBox(move, onTorso(first, CHEST));
     const along = (a: Vec3, b: Vec3, k: number): Vec3 => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
     for (const { body } of loop)
       for (const l of [body.near, body.far])
@@ -64,29 +71,43 @@ describe("Chest-supported row loop, sampled 360 times", () => {
     expect(elbowBack(reach)).toBeLessThan(0);
   });
 
-  test("a pause at the top: the handles hold still at the squeeze for at least 0.25 s", () => {
+  test("a short pause at the top: the handles hold still at the squeeze for 0.25 to 0.8 s", () => {
     const i = loop.indexOf(squeeze);
     const still = (k: number) => dist(loop[(k + N) % N]!.pose.grip.at, squeeze.pose.grip.at) < 1e-9;
     let [a, b] = [i, i];
     while (still(a - 1) && a - 1 > i - N) a--;
     while (still(b + 1) && b + 1 < i + N) b++;
     expect(((b - a) / N) * move.durationMs).toBeGreaterThanOrEqual(250);
+    expect(((b - a) / N) * move.durationMs).toBeLessThanOrEqual(800);
   });
 
-  test("neutral neck: the head stays within the squat's neutral band", () => {
-    for (const { pose } of loop) {
-      expect(pose.joints.neck).toBeGreaterThanOrEqual(-15);
-      expect(pose.joints.neck).toBeLessThanOrEqual(5);
-    }
+  test("neutral neck: the head in line with the trunk, within 5 degrees", () => {
+    for (const { pose } of loop) expect(Math.abs(pose.joints.neck)).toBeLessThanOrEqual(5);
   });
 
-  test("feet planted: the heel never moves and the foot stays flat on the footplate", () => {
-    const plate = nearestBox(move, [first.near.heel[0], first.near.heel[1] - BODY.ankleHeight, first.near.heel[2]]);
+  test("feet planted: the heel never moves and the foot stays flat on the floor or a foot platform", () => {
+    const sole = (body: (typeof loop)[number]["body"]): Vec3 => [body.near.heel[0], body.near.heel[1] - BODY.ankleHeight, body.near.heel[2]];
+    const plate = nearestBox(move, sole(first));
+    const onFloor = floor?.kind === "floor" && Math.abs(sole(first)[1] - floor.y) <= 0.5;
     for (const { body } of loop) {
       expect(dist(body.near.heel, first.near.heel)).toBeLessThan(1e-9);
       expect(Math.abs(body.angles.foot - 90)).toBeLessThanOrEqual(0.01);
-      expect(Math.abs(sdBox([body.near.heel[0], body.near.heel[1] - BODY.ankleHeight, body.near.heel[2]], plate))).toBeLessThanOrEqual(0.5);
+      expect(onFloor || Math.abs(sdBox(sole(body), plate)) <= 0.5).toBe(true);
     }
+  });
+
+  test("the handles ride lever arms: every sampled handle is exactly one lever length from the pivot", () => {
+    expect(move.lever).toBeDefined();
+    const { pivot, length } = move.lever!;
+    for (const { pose } of loop) expect(Math.abs(dist(pose.grip.at, pivot) - length)).toBeLessThan(1e-9);
+  });
+
+  test("the lever swings the handles through at least 25 degrees of its arc, on a pivot the machine holds in front of the chest", () => {
+    const { pivot } = move.lever!;
+    const angle = (f: (typeof loop)[number]) => Math.atan2(f.pose.grip.at[1] - pivot[1], f.pose.grip.at[0] - pivot[0]);
+    expect(Math.abs(deg(angle(squeeze) - angle(reach)))).toBeGreaterThanOrEqual(25);
+    expect(pivot[0]).toBeGreaterThan(onTorso(first, CHEST)[0]);
+    expect(sdBox([pivot[0], pivot[1], 0], nearestBox(move, [pivot[0], pivot[1], 0]))).toBeLessThanOrEqual(0);
   });
 
   test("the hands never let go of the handles", () => {

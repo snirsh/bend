@@ -50,6 +50,9 @@ export type Prop =
   | { readonly kind: "smith"; readonly x: number }
   | { readonly kind: "box"; readonly at: Vec3; readonly size: Vec3; readonly tilt?: number };
 
+/** Lever arms the handles ride: each handle stays `length` cm from `pivot` (side view), so it swings on that arc. */
+export type Lever = { readonly pivot: Vec2; readonly length: number };
+
 /** A move file, `src/moves/<id>.json`. */
 export type Move = {
   readonly id: string;
@@ -64,9 +67,18 @@ export type Move = {
   readonly camera: { readonly yaw: number; readonly elevation: number };
   /** What the hands hold at the keyframes' `bar` point: a barbell along z, or two handles. */
   readonly implement: "barbell" | "handles";
+  /** Handles only: the lever arms they hang from. */
+  readonly lever?: Lever;
   readonly props: readonly Prop[];
   readonly keyframes: readonly Keyframe[];
   readonly steps: readonly { readonly keyframe: number; readonly label: string }[];
+};
+
+/** The point of the lever's arc nearest `p`. Keyframes lie on the arc; this keeps the handle on it between them. */
+const onArc = ({ pivot, length }: Lever, p: Vec2): Vec2 => {
+  const [dx, dy] = [p[0] - pivot[0], p[1] - pivot[1]];
+  const k = length / Math.hypot(dx, dy);
+  return [pivot[0] + dx * k, pivot[1] + dy * k];
 };
 
 /** The pose at loop time `t` (any real number; 1 is 0 again). */
@@ -75,10 +87,11 @@ export const poseAt = (move: Move, t: number): Pose => {
   const ts = keyframes.map((k) => k.t);
   const channel = (pick: (k: Keyframe) => number) => periodic(ts, keyframes.map(pick), t);
   const joints = Object.fromEntries(JOINTS.map((j) => [j, channel((k) => k.joints[j])])) as Record<JointName, number>;
+  const bar: Vec2 = [channel((k) => k.bar[0]), channel((k) => k.bar[1])];
   const pose: Pose = {
     root: [channel((k) => k.root[0]), channel((k) => k.root[1])],
     joints,
-    grip: { ...move.grip, at: [channel((k) => k.bar[0]), channel((k) => k.bar[1])] },
+    grip: { ...move.grip, at: move.lever ? onArc(move.lever, bar) : bar },
   };
   if (!move.anchor) return pose;
   // Channels interpolate independently, so a planted foot would slide and tilt a hair

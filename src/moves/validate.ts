@@ -3,7 +3,7 @@
  * `Move`, or throws a `MoveError` naming the first field that is wrong. Pure, no DOM.
  */
 import { catalog } from "../plan/plan.ts";
-import type { Keyframe, Move, Prop } from "./sample.ts";
+import type { Keyframe, Lever, Move, Prop } from "./sample.ts";
 import { JOINTS, RANGES, type JointName, type Joints, type Vec2, type Vec3 } from "./skeleton.ts";
 
 /** A move file that does not hold a playable move. `path` is the field, e.g. `keyframes[3].joints.knee`; "" is the whole file. */
@@ -110,6 +110,20 @@ const keyframes = (v: unknown, path: string): readonly Keyframe[] =>
     return out;
   }, []);
 
+/** How far a keyframe's handle may sit off the lever's arc, cm: the solver rounds to 0.1. */
+const ARC_TOLERANCE = 0.5;
+
+/** A lever carries handles, and every keyframe puts them on its arc. */
+const lever = (v: unknown, implement: Move["implement"], frames: readonly Keyframe[]): Lever => {
+  const o = object(v, "lever", ["pivot", "length"]);
+  const pivot = vec2(o.pivot, "lever.pivot");
+  const length = num(o.length, "lever.length", [10, 200]);
+  if (implement !== "handles") bad("lever", "only handles ride a lever");
+  for (const [i, k] of frames.entries())
+    if (Math.abs(Math.hypot(k.bar[0] - pivot[0], k.bar[1] - pivot[1]) - length) > ARC_TOLERANCE) bad(`keyframes[${i}].bar`, "not on the lever's arc");
+  return { pivot, length };
+};
+
 const LABEL_MAX = 24;
 
 /** Steps run in keyframe order, so "2 of 3" means the second one in the loop. */
@@ -129,7 +143,7 @@ const CATALOG: readonly string[] = catalog.map((e) => e.id);
 
 /** Parses the raw contents of `src/moves/<fileId>.json`. */
 export const parseMove = (raw: unknown, fileId: string): Move => {
-  const o = object(raw, "", ["id", "view", "camera", "implement", "durationMs", "keyPose", "grip", "props", "keyframes", "steps"], ["anchor"]);
+  const o = object(raw, "", ["id", "view", "camera", "implement", "durationMs", "keyPose", "grip", "props", "keyframes", "steps"], ["anchor", "lever"]);
   if (o.id !== fileId) bad("id", `not the file name, ${fileId}`);
   if (!CATALOG.includes(fileId)) bad("id", "not a catalog exercise");
   const camera = object(o.camera, "camera", ["yaw", "elevation"]);
@@ -137,6 +151,7 @@ export const parseMove = (raw: unknown, fileId: string): Move => {
   const frames = keyframes(o.keyframes, "keyframes");
   const halfWidth = num(grip.halfWidth, "grip.halfWidth", [0, 60]);
   if (halfWidth === 0) bad("grip.halfWidth", "not above 0");
+  const implement = oneOf(o.implement, "implement", ["barbell", "handles"]);
   const move: Move = {
     id: fileId,
     view: oneOf(o.view, "view", ["side"]),
@@ -144,10 +159,11 @@ export const parseMove = (raw: unknown, fileId: string): Move => {
     keyPose: index(o.keyPose, "keyPose", frames.length),
     grip: { halfWidth, pole: vec3(grip.pole, "grip.pole") },
     camera: { yaw: num(camera.yaw, "camera.yaw", [-90, 90]), elevation: num(camera.elevation, "camera.elevation", [-30, 60]) },
-    implement: oneOf(o.implement, "implement", ["barbell", "handles"]),
+    implement,
     props: list(o.props, "props").map((p, i) => prop(p, at("props", i))),
     keyframes: frames,
     steps: steps(o.steps, "steps", frames.length),
   };
-  return Object.hasOwn(o, "anchor") ? { ...move, anchor: oneOf(o.anchor, "anchor", ["heel"]) } : move;
+  const anchored = Object.hasOwn(o, "anchor") ? { ...move, anchor: oneOf(o.anchor, "anchor", ["heel"]) } : move;
+  return Object.hasOwn(o, "lever") ? { ...anchored, lever: lever(o.lever, implement, frames) } : anchored;
 };

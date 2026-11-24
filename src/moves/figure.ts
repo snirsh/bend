@@ -9,17 +9,18 @@
  * Frames (see `frames` in render.ts): a = the segment axis, s = lateral (out from the
  * midline, mirrored on the far side), f = a x s. On the torso and head f points to the
  * front; on the thigh and shin it points to the back; on the foot it points down at the
- * sole. Arms are round, so their roll does not matter. A box prop is a loft along its own
- * x axis in a frame of its own, after the fixed slots.
+ * sole. Arms are round, so their roll does not matter. The lever frame sits at the pivot
+ * with its axis toward the handles and s along z. A box prop is a loft along its own x axis
+ * in a frame of its own, after the fixed slots.
  */
-import type { Move } from "./sample.ts";
+import type { Lever, Move } from "./sample.ts";
 import type { Vec3 } from "./skeleton.ts";
 
 export const SEG = ["torso", "head", "bar", "rail", "thigh", "shin", "foot", "upper", "fore", "hand"] as const;
 export type Seg = (typeof SEG)[number];
 
-/** Tone classes; far-side limbs take the dimmer body tone. */
-export const enum Tone { Body, Far, Bar, Rail }
+/** Tone classes; far-side limbs take the dimmer body tone. Box props (pads, seat, frame) take their own. */
+export const enum Tone { Body, Far, Bar, Rail, Box }
 
 type Ring = readonly [t: number, f: number, s: number, hf: number, hs: number];
 /** `seg` names a fixed frame slot, or is a box's own slot number. `frame: false` keeps a part out of the framing bounds. */
@@ -89,6 +90,12 @@ const handles = (halfWidth: number): Part[] =>
     { seg: "bar", n: 6, tone: Tone.Bar, rings: [[side * (halfWidth - 5.5), 0, 0, 1.7, 1.7], [side * (halfWidth + 7), 0, 0, 1.7, 1.7]] },
     { seg: "bar", n: 4, tone: Tone.Bar, rings: [[side * (halfWidth + 7), 0, 0, 4, 4], [side * (halfWidth + 11), 0, 0, 4, 4]] },
   ]);
+/** Lever arms: a flat bar from just behind the pivot out into each handle's block, wide in the swing plane. */
+const leverArms = ({ length }: Lever, halfWidth: number): Part[] =>
+  [1, -1].map((side): Part => {
+    const s = side * (halfWidth + 9);
+    return { seg: LEVER_FRAME, n: 4, tone: Tone.Box, rings: [[-5, 0, s, 4.2, 2], [length, 0, s, 3.2, 1.8]] };
+  });
 /**
  * A box as a 4-sided loft along its x axis: a 4-gon ring is the box inscribed in the
  * ellipse, so the half extents grow by √2. Cut about every 20 cm, so a long pad sorts
@@ -97,12 +104,15 @@ const handles = (halfWidth: number): Part[] =>
 const box = ([l, h, w]: Vec3, slot: number): Part => {
   const cuts = Math.max(1, Math.round(l / 20));
   const ring = (i: number): Ring => [-l / 2 + (l * i) / cuts, 0, 0, (h / 2) * Math.SQRT2, (w / 2) * Math.SQRT2];
-  return { seg: slot, n: 4, tone: Tone.Rail, frame: false, rings: Array.from({ length: cuts + 1 }, (_, i) => ring(i)) };
+  return { seg: slot, n: 4, tone: Tone.Box, frame: false, rings: Array.from({ length: cuts + 1 }, (_, i) => ring(i)) };
 };
-/** Equipment parts for a move, in draw-index order: the implement, the Smith machine, then each box. */
-const equipment = ({ implement, props, grip }: Equipment): Part[] => {
+/** Equipment parts for a move, in draw-index order: the implement and its lever or the Smith machine, then each box. */
+const equipment = ({ implement, props, grip, lever }: Equipment): Part[] => {
   const smith = props.some((p) => p.kind === "smith");
-  const held = implement === "handles" ? handles(grip.halfWidth) : [...BAR, ...(smith ? SMITH : PLATES)];
+  const held =
+    implement === "handles"
+      ? [...handles(grip.halfWidth), ...(lever ? leverArms(lever, grip.halfWidth) : [])]
+      : [...BAR, ...(smith ? SMITH : PLATES)];
   const boxes = props.flatMap((p) => (p.kind === "box" ? [p] : [])).map((p, k) => box(p.size, FRAME_COUNT + k));
   return [...held, ...boxes];
 };
@@ -122,10 +132,11 @@ export type Mesh = {
 };
 
 /** What a move holds and stands on: enough to build its equipment. */
-export type Equipment = Pick<Move, "implement" | "props" | "grip">;
+export type Equipment = Pick<Move, "implement" | "props" | "grip" | "lever">;
 
-/** Frame slots: torso, head, bar, rail, then thigh..hand for the near side, then for the far side. Box props follow. */
-export const FRAME_COUNT = 4 + 6 * 2;
+/** Frame slots: torso, head, bar, rail, then thigh..hand for the near side, then for the far side, then the lever. Box props follow. */
+export const LEVER_FRAME = 4 + 6 * 2;
+export const FRAME_COUNT = LEVER_FRAME + 1;
 const frameIndex = (seg: Seg | number, far: boolean) => {
   if (typeof seg === "number") return seg;
   const i = SEG.indexOf(seg);

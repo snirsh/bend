@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readdirSync, readFileSync } from "node:fs";
+import rowFile from "../../src/moves/chest-supported-row.json";
 import squatFile from "../../src/moves/smith-squat.json";
 import { MoveError, parseMove } from "../../src/moves/validate.ts";
 
@@ -10,6 +11,7 @@ const shipped = readdirSync(MOVES)
 
 type Draft = Record<string, any>;
 const squat = () => structuredClone(squatFile) as Draft;
+const row = () => structuredClone(rowFile) as Draft;
 
 /** The error parseMove throws for `raw`, or undefined when it parses. */
 const rejection = (raw: unknown, fileId = "smith-squat") => {
@@ -96,11 +98,41 @@ const bad: [string, (m: Draft) => unknown, string][] = [
   ["a box tilt is not finite", (m) => m.props.push({ kind: "box", at: [0, 0, 0], size: [1, 1, 1], tilt: Number.NaN }), "props[2].tilt"],
 ];
 
+const outward = (p: number[], pivot: number[], by: number) => {
+  const d = Math.hypot(p[0]! - pivot[0]!, p[1]! - pivot[1]!);
+  return p.map((v, i) => v + ((v - pivot[i]!) / d) * by);
+};
+
+// One mutation of the shipped row, whose handles ride a lever, per row.
+const badLever: [string, (m: Draft) => unknown, string][] = [
+  ["the lever is not an object", (m) => (m.lever = 40), "lever"],
+  ["the lever has no pivot", (m) => delete m.lever.pivot, "lever.pivot"],
+  ["the lever has no length", (m) => delete m.lever.length, "lever.length"],
+  ["the lever has an unknown field", (m) => (m.lever.mass = 5), "lever.mass"],
+  ["the lever pivot is not a pair", (m) => (m.lever.pivot = [1, 2, 3]), "lever.pivot"],
+  ["the lever pivot has a string", (m) => (m.lever.pivot[0] = "40"), "lever.pivot[0]"],
+  ["the lever length is not finite", (m) => (m.lever.length = Number.NaN), "lever.length"],
+  ["the lever is shorter than 10 cm", (m) => (m.lever.length = 9.5), "lever.length"],
+  ["the lever is longer than 200 cm", (m) => (m.lever.length = 200.5), "lever.length"],
+  ["a barbell rides the lever", (m) => (m.implement = "barbell"), "lever"],
+  // 1 cm straight out from the pivot.
+  ["a handle leaves the lever's arc", (m) => (m.keyframes[3].bar = outward(m.keyframes[3].bar, m.lever.pivot, 1)), "keyframes[3].bar"],
+  ["the lever is longer than the handles sit from the pivot", (m) => (m.lever.length += 1), "keyframes[0].bar"],
+];
+
 describe("parseMove rejects a file when", () => {
   test.each(bad)("%s", (_, mutate, path) => {
     const raw = squat();
     mutate(raw);
     const error = rejection(raw);
+    expect(error).toBeInstanceOf(MoveError);
+    expect((error as MoveError).path).toBe(path);
+  });
+
+  test.each(badLever)("%s", (_, mutate, path) => {
+    const raw = row();
+    mutate(raw);
+    const error = rejection(raw, "chest-supported-row");
     expect(error).toBeInstanceOf(MoveError);
     expect((error as MoveError).path).toBe(path);
   });

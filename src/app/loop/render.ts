@@ -27,6 +27,11 @@ export const VIEW = {
    * shade is a mid warm grey (L* ~49 at the darkest face), lit faces stay under the ground.
    */
   lightRamp: [0, 0.62] as const,
+  /**
+   * Box props (pads, seat, frame) shade from --line toward --muted by these amounts per theme: off the
+   * floor and under the lifter's darkest face on a dark ground, a mid warm grey on a light one.
+   */
+  box: { dark: [0, 0.35], light: [0.2, 0.55] } as Readonly<Record<"dark" | "light", readonly [number, number]>>,
   /** How far far-side limbs and the floor mix toward the background. */
   far: 0.3,
   pad: 0.03,
@@ -95,6 +100,9 @@ const frames = (move: Move, t: number, out: Float64Array) => {
     put(l.elbow, fore, elbowRef, 1);
     put(l.wrist, fore, Z, side);
   }
+  const lever = move.lever;
+  if (lever) put([lever.pivot[0], lever.pivot[1], 0], unit([bar[0] - lever.pivot[0], bar[1] - lever.pivot[1], 0]), Z, 1);
+  else put([0, 0, 0], Y, Z, 1);
   for (const p of move.props) if (p.kind === "box") put(p.at, [Math.cos(rad(p.tilt ?? 0)), Math.sin(rad(p.tilt ?? 0)), 0], Z, 1);
 };
 
@@ -128,8 +136,9 @@ const palette = (el: Element) => {
   const style = getComputedStyle(el);
   const v = (name: string) => parse(style.getPropertyValue(name));
   const [fg, muted, line, surface] = [v("--fg"), v("--muted"), v("--line"), v("--surface")];
+  const dark = luma(fg) > luma(muted);
   const [lo, hi] =
-    luma(fg) > luma(muted)
+    dark
       ? [mix(muted, surface, VIEW.spread), fg]
       : [mix(muted, surface, VIEW.lightRamp[0]), mix(muted, surface, VIEW.lightRamp[1])];
   const ramp = (a: Rgb, b: Rgb, toward = 0) =>
@@ -140,6 +149,9 @@ const palette = (el: Element) => {
   const steel = mix(muted, surface, 0.4);
   ramps[Tone.Bar] = luma(muted) > luma(steel) ? ramp(steel, muted) : ramp(muted, steel);
   ramps[Tone.Rail] = ramp(mix(surface, line, 0.7), line);
+  const box = VIEW.box[dark ? "dark" : "light"];
+  const [padA, padB] = [mix(line, muted, box[0]), mix(line, muted, box[1])];
+  ramps[Tone.Box] = luma(padA) < luma(padB) ? ramp(padA, padB) : ramp(padB, padA);
   return { ramps, floor: css(mix(surface, line, 0.55)) };
 };
 
