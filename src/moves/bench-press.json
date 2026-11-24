@@ -1,0 +1,13 @@
+{"id":"bench-press","view":"side","camera":{"yaw":50,"elevation":30},"implement":"barbell","durationMs":3600,"keyPose":6,"anchor":"heel","grip":{"halfWidth":32,"pole":[-1,-1.75,2.2]},"props":[{"kind":"floor","y":0},{"kind":"box","at":[-81.3,40,0],"size":[110,6,28]},{"kind":"box","at":[-128.3,18.5,0],"size":[5,37,24]},{"kind":"box","at":[-34.3,18.5,0],"size":[5,37,24]},{"kind":"box","at":[-112.3,58.1,54],"size":[5,116.1,5]},{"kind":"box","at":[-112.3,58.1,-54],"size":[5,116.1,5]}],"keyframes":[
+    {"t":0,"root":[-36.3,54.2],"joints":{"trunk":-90,"neck":-14,"hip":-8.9,"knee":91.1,"ankle":10},"bar":[-90.3,118.1]},
+    {"t":0.1,"root":[-36.3,54.2],"joints":{"trunk":-90,"neck":-14,"hip":-8.9,"knee":91.1,"ankle":10},"bar":[-90.3,118.1]},
+    {"t":0.18,"root":[-36.3,54.2],"joints":{"trunk":-90,"neck":-14,"hip":-8.9,"knee":91.1,"ankle":10},"bar":[-87.3,108.5]},
+    {"t":0.26,"root":[-36.3,54.2],"joints":{"trunk":-90,"neck":-14,"hip":-8.9,"knee":91.1,"ankle":10},"bar":[-84.3,98.9]},
+    {"t":0.34,"root":[-36.3,54.2],"joints":{"trunk":-90,"neck":-14,"hip":-8.9,"knee":91.1,"ankle":10},"bar":[-81.3,89.3]},
+    {"t":0.42,"root":[-36.3,54.2],"joints":{"trunk":-90,"neck":-14,"hip":-8.9,"knee":91.1,"ankle":10},"bar":[-78.3,79.7]},
+    {"t":0.52,"root":[-36.3,54.2],"joints":{"trunk":-90,"neck":-14,"hip":-8.9,"knee":91.1,"ankle":10},"bar":[-75.3,70.1]},
+    {"t":0.6,"root":[-36.3,54.2],"joints":{"trunk":-90,"neck":-14,"hip":-8.9,"knee":91.1,"ankle":10},"bar":[-80.7,79.7]},
+    {"t":0.66,"root":[-36.3,54.2],"joints":{"trunk":-90,"neck":-14,"hip":-8.9,"knee":91.1,"ankle":10},"bar":[-84.9,89.3]},
+    {"t":0.72,"root":[-36.3,54.2],"joints":{"trunk":-90,"neck":-14,"hip":-8.9,"knee":91.1,"ankle":10},"bar":[-87.9,98.9]},
+    {"t":0.78,"root":[-36.3,54.2],"joints":{"trunk":-90,"neck":-14,"hip":-8.9,"knee":91.1,"ankle":10},"bar":[-89.7,108.5]},
+    {"t":0.86,"root":[-36.3,54.2],"joints":{"trunk":-90,"neck":-14,"hip":-8.9,"knee":91.1,"ankle":10},"bar":[-90.3,115.7]}],"steps":[{"keyframe":0,"label":"lockout"},{"keyframe":3,"label":"lowering"},{"keyframe":6,"label":"chest"}]}
