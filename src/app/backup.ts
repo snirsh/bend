@@ -74,20 +74,25 @@ const parseExercise = (raw: unknown, sessionWhere: string, index: number): Logge
   return { exerciseId: exerciseId(raw.exerciseId), sets: raw.sets.map((s: unknown, i) => parseSet(s, `${where}, set ${i + 1}`)) };
 };
 
-const parseSession = (raw: unknown, index: number): LoggedSession => {
+const parseSession = (raw: unknown, index: number, today: CalendarDate): LoggedSession => {
   const n = `session ${index + 1}`;
   if (!isRecord(raw)) throw new BackupError(`${n}: expected an object`);
   const date = parseDate(raw.date, n);
   const where = `${n} (${date})`;
+  // The engine refuses a history that ends after today, so such a file would break every later session.
+  if (date > today) throw new BackupError(`${where}: dated after today (${today}); check the device date or the file`);
   const { letter, tags, exercises } = raw;
   if (!isLetter(letter)) throw new BackupError(`${where}: letter must be one of ${LETTERS.join(", ")}, got ${JSON.stringify(letter)}`);
   if (!Array.isArray(tags) || !tags.every(isTag)) throw new BackupError(`${where}: tags may only contain ${TAGS.join(", ")}`);
-  if (!Array.isArray(exercises)) throw new BackupError(`${where}: exercises must be a list`);
+  if (!Array.isArray(exercises) || exercises.length === 0) throw new BackupError(`${where}: needs at least one exercise`);
   return { date, letter, exercises: exercises.map((e: unknown, i) => parseExercise(e, where, i)), tags };
 };
 
-/** Validates a backup file with the same set rules as the engine. One bad session rejects the whole file. */
-export const parseBackup = (text: string): ParsedBackup => {
+/**
+ * Validates a backup file with the same set rules as the engine, against the device's local `today`.
+ * One bad session rejects the whole file.
+ */
+export const parseBackup = (text: string, today: CalendarDate): ParsedBackup => {
   try {
     let raw: unknown;
     try {
@@ -102,7 +107,7 @@ export const parseBackup = (text: string): ParsedBackup => {
     if (typeof raw.exportedAt !== "string" || !Array.isArray(raw.sessions)) {
       throw new BackupError("Not a bend backup: expected exportedAt and a sessions list");
     }
-    return { ok: true, backup: toBackup(raw.sessions.map(parseSession), raw.exportedAt) };
+    return { ok: true, backup: toBackup(raw.sessions.map((session: unknown, i: number) => parseSession(session, i, today)), raw.exportedAt) };
   } catch (e) {
     if (e instanceof BackupError) return { ok: false, error: e.message };
     throw e;

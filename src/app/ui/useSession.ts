@@ -111,7 +111,7 @@ export const useSession = () => {
   const importFile = useCallback(
     async (text: string): Promise<{ ok: boolean; message: string }> => {
       if (!store || (phase.kind !== "active" && phase.kind !== "finished")) return { ok: false, message: "Still loading." };
-      const parsed = parseBackup(text);
+      const parsed = parseBackup(text, today());
       if (!parsed.ok) return { ok: false, message: parsed.error };
       const { added, duplicates } = mergeHistory(phase.history, parsed.backup.sessions);
       await store.addSessions(added);
