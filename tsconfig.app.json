@@ -7,13 +7,18 @@
       "DOM.Iterable"
     ],
     "types": [
-      "bun"
+      "bun",
+      "node"
     ],
     "jsx": "react-jsx"
   },
   "include": [
     "src",
-    "tests"
+    "tests",
+    "e2e",
+    "scripts",
+    "vite.config.ts",
+    "playwright.config.ts"
   ],
   "exclude": []
 }
