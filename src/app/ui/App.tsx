@@ -221,9 +221,6 @@ const LoopSlot = ({ id, label }: { id: ExerciseId; label: string }) => {
           <path d="M8 22 L18 20" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
         </svg>
       )}
-      <span className="loop-label" aria-hidden="true">
-        loop
-      </span>
     </div>
   );
 };

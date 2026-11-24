@@ -7,9 +7,6 @@
 import type { Move } from "../../moves/sample.ts";
 import { mountLoop } from "./render.ts";
 
-/** The label strip at the bottom of the slot that the figure keeps clear of, CSS px. */
-const LABEL = 12;
-
 /** Plays `move` in `slot` while the slot is on screen, the page is visible and motion is welcome. Returns a stop function. */
 export const play = (slot: HTMLElement, move: Move): (() => void) => {
   const canvas = document.createElement("canvas");
@@ -17,7 +14,7 @@ export const play = (slot: HTMLElement, move: Move): (() => void) => {
   canvas.setAttribute("aria-hidden", "true");
   slot.append(canvas);
   const { width, height } = canvas.getBoundingClientRect();
-  const loop = mountLoop(canvas, move, { x: 0, y: 0, w: width, h: height - LABEL });
+  const loop = mountLoop(canvas, move, { x: 0, y: 0, w: width, h: height });
   const keyT = move.keyframes[move.keyPose]!.t;
   loop.draw(keyT);
   slot.dataset.loop = "ready";

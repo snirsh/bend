@@ -9,11 +9,14 @@ import { buildMesh, FRAME_COUNT, RAIL_Z, Tone } from "../../moves/figure.ts";
 
 /** Camera and light. Yaw turns the camera from the pure side view toward the lifter's front. */
 export const VIEW = {
-  yaw: 30,
+  yaw: -25,
   elevation: 8,
   /** Toward the light in camera space: x right, y up, z toward the viewer. */
   light: [-0.6, 0.7, 0.4] as Vec3,
   ambient: 0.15,
+  /** A rim from behind the lifter, opposite the key light: separates the silhouette from the ground. Camera space. */
+  rim: [0.75, 0.2, -0.65] as Vec3,
+  rimStrength: 0.35,
   /** Lambert exponent: above 1 darkens the half-lit facets, so neighbouring facets separate. */
   gamma: 1.5,
   /** How far the --muted end of the body ramp mixes on toward the background. */
@@ -23,6 +26,8 @@ export const VIEW = {
   pad: 0.03,
   /** "body" frames the lifter alone and lets the rails, bar ends and floor crop at the edge. */
   fit: "body" as "all" | "body",
+  /** Frame one loop time instead of the whole loop: for a still that should fill the frame. */
+  fitAt: null as number | null,
   /** Shade steps per tone ramp. */
   levels: 32,
 };
@@ -109,7 +114,7 @@ const palette = (el: Element) => {
   ramps[Tone.Far] = ramp(lo, hi, VIEW.far);
   const steel = mix(muted, surface, 0.4);
   ramps[Tone.Bar] = luma(muted) > luma(steel) ? ramp(steel, muted) : ramp(muted, steel);
-  ramps[Tone.Rail] = ramp(line, mix(line, muted, 0.4));
+  ramps[Tone.Rail] = ramp(mix(surface, line, 0.7), line);
   return { ramps, floor: css(mix(surface, line, 0.55)) };
 };
 
@@ -130,10 +135,15 @@ export const mountLoop = (canvas: HTMLCanvasElement, move: Move, area?: Area) =>
     cam.right[1] * VIEW.light[0] + cam.up[1] * VIEW.light[1] + cam.toward[1] * VIEW.light[2],
     cam.right[2] * VIEW.light[0] + cam.up[2] * VIEW.light[1] + cam.toward[2] * VIEW.light[2],
   ]);
+  const rim = unit([
+    cam.right[0] * VIEW.rim[0] + cam.up[0] * VIEW.rim[1] + cam.toward[0] * VIEW.rim[2],
+    cam.right[1] * VIEW.rim[0] + cam.up[1] * VIEW.rim[1] + cam.toward[1] * VIEW.rim[2],
+    cam.right[2] * VIEW.rim[0] + cam.up[2] * VIEW.rim[1] + cam.toward[2] * VIEW.rim[2],
+  ]);
 
   const world = new Float64Array(FRAME_COUNT * 12);
-  /** Per frame: projected origin and axes (x, y, depth each), then axis·light. */
-  const proj = new Float64Array(FRAME_COUNT * 15);
+  /** Per frame: projected origin and axes (x, y, depth each), then axis·light, then axis·rim. */
+  const proj = new Float64Array(FRAME_COUNT * 18);
   const px = new Float32Array(nv);
   const py = new Float32Array(nv);
   const pz = new Float32Array(nv);
@@ -143,7 +153,7 @@ export const mountLoop = (canvas: HTMLCanvasElement, move: Move, area?: Area) =>
   const project = (t: number, k: number, ox: number, oy: number) => {
     frames(move, t, world);
     for (let i = 0; i < FRAME_COUNT; i++) {
-      const w = i * 12, p = i * 15;
+      const w = i * 12, p = i * 18;
       for (let j = 0; j < 4; j++) {
         const x = world[w + j * 3]!, y = world[w + j * 3 + 1]!, z = world[w + j * 3 + 2]!;
         const r = x * cam.right[0] + y * cam.right[1] + z * cam.right[2];
@@ -151,11 +161,14 @@ export const mountLoop = (canvas: HTMLCanvasElement, move: Move, area?: Area) =>
         proj[p + j * 3] = k * r + (j === 0 ? ox : 0);
         proj[p + j * 3 + 1] = -k * u + (j === 0 ? oy : 0);
         proj[p + j * 3 + 2] = x * cam.toward[0] + y * cam.toward[1] + z * cam.toward[2];
-        if (j > 0) proj[p + 11 + j] = x * light[0] + y * light[1] + z * light[2];
+        if (j > 0) {
+          proj[p + 11 + j] = x * light[0] + y * light[1] + z * light[2];
+          proj[p + 14 + j] = x * rim[0] + y * rim[1] + z * rim[2];
+        }
       }
     }
     for (let v = 0; v < nv; v++) {
-      const p = vf[v]! * 15, t3 = v * 3;
+      const p = vf[v]! * 18, t3 = v * 3;
       const a = lv[t3]!, f = lv[t3 + 1]!, s = lv[t3 + 2]!;
       px[v] = proj[p]! + a * proj[p + 3]! + f * proj[p + 6]! + s * proj[p + 9]!;
       py[v] = proj[p + 1]! + a * proj[p + 4]! + f * proj[p + 7]! + s * proj[p + 10]!;
@@ -168,8 +181,8 @@ export const mountLoop = (canvas: HTMLCanvasElement, move: Move, area?: Area) =>
   const grow = (x: number, y: number) => {
     minX = Math.min(minX, x), maxX = Math.max(maxX, x), minY = Math.min(minY, y), maxY = Math.max(maxY, y);
   };
-  for (let i = 0; i < 24; i++) {
-    project(i / 24, 1, 0, 0);
+  for (const t of VIEW.fitAt === null ? Array.from({ length: 24 }, (_, i) => i / 24) : [VIEW.fitAt]) {
+    project(t, 1, 0, 0);
     for (let v = 0; v < nv; v++) if (vb[v] === 1 || (vb[v] && VIEW.fit === "all")) grow(px[v]!, py[v]!);
   }
   const floor: Vec3[] = [[FLOOR.x0, 0, -FLOOR.z], [FLOOR.x1, 0, -FLOOR.z], [FLOOR.x1, 0, FLOOR.z], [FLOOR.x0, 0, FLOOR.z]];
@@ -197,11 +210,12 @@ export const mountLoop = (canvas: HTMLCanvasElement, move: Move, area?: Area) =>
     project(t, scale, ox, oy);
     let n = 0;
     for (let i = 0; i < nf; i++) {
-      const p = ff[i]! * 15, n3 = i * 3;
+      const p = ff[i]! * 18, n3 = i * 3;
       const a = fn[n3]!, f = fn[n3 + 1]!, s = fn[n3 + 2]!;
       if (a * proj[p + 5]! + f * proj[p + 8]! + s * proj[p + 11]! <= 1e-3) continue;
       const lit = Math.max(0, a * proj[p + 12]! + f * proj[p + 13]! + s * proj[p + 14]!) ** VIEW.gamma;
-      shade[i] = Math.round((VIEW.ambient + (1 - VIEW.ambient) * lit) * VIEW.levels);
+      const back = Math.max(0, a * proj[p + 15]! + f * proj[p + 16]! + s * proj[p + 17]!) ** 2;
+      shade[i] = Math.round(Math.min(1, VIEW.ambient + (1 - VIEW.ambient) * lit + VIEW.rimStrength * back) * VIEW.levels);
       let depth = 0;
       for (let j = fo[i]!; j < fo[i + 1]!; j++) depth += pz[fv[j]!]!;
       depth = depth / (fo[i + 1]! - fo[i]!) + fb[i]!;

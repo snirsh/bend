@@ -7,9 +7,8 @@ import { mkdirSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-/** Inner size of the 88 px slot (1 px border) and the label strip the figure keeps clear of. Match play.ts. */
+/** Inner size of the 88 px slot (1 px border). Match play.ts. */
 const SIZE = 86;
-const LABEL = 12;
 const DPR = 2;
 
 const tmp = mkdtempSync(join(tmpdir(), "bend-posters-"));
@@ -28,7 +27,7 @@ for (const scheme of ["dark", "light"] as const) {
   await page.waitForFunction(() => typeof window.poster === "function");
   for (const file of moves) {
     const move = JSON.parse(readFileSync(join("src/moves", file), "utf8"));
-    await page.evaluate(([m, size, label]) => window.poster(m, size, label), [move, SIZE, LABEL] as const);
+    await page.evaluate(([m, size]) => window.poster(m, size), [move, SIZE] as const);
     const png = join(tmp, `${move.id}-${scheme}.png`);
     await page.locator("canvas").screenshot({ path: png, omitBackground: true });
     const out = `public/moves/${move.id}-${scheme}.webp`;

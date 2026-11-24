@@ -25,11 +25,11 @@ const BODY_PARTS: readonly Part[] = [
   // Pelvis block: glutes push back, a narrow crotch, the waist on top.
   { seg: "torso", n: 8, rings: [[-10.5, 1, 0, 4, 6], [-5, -1.4, 0, 10, 14.8], [4, -2.2, 0, 11.6, 16.4], [13, -0.4, 0, 10.2, 15.4], [20, 0.8, 0, 8.6, 13.2]] },
   // Ribcage and chest: deepest at the pecs, widest under the arms, a trapezius slope to the neck.
-  { seg: "torso", n: 8, rings: [[18, 1.2, 0, 9.2, 13], [29, 2.2, 0, 11.2, 14.8], [40, 2, 0, 12.4, 16.4], [49, 1, 0, 11.8, 17.6], [55.5, -0.6, 0, 8.8, 14.6], [59.5, -1.4, 0, 5.4, 6.6]] },
+  { seg: "torso", n: 8, rings: [[18, 1, 0, 9.2, 13], [29, 2.4, 0, 11.2, 15], [40, 2.8, 0, 12.6, 17.6], [49, 1.6, 0, 12, 19.6], [55.5, -1, 0, 9.4, 16.8], [59.5, -2, 0, 6.2, 8]] },
   // Neck, from inside the chest up into the skull.
   { seg: "head", n: 6, rings: [[-9, 0.2, 0, 6, 6.2], [-1, 0.6, 0, 5.4, 5.6], [4, 1.2, 0, 5, 5.2]] },
-  // Head: an egg with a jaw plane under a forward chin, the skull bulging behind the neck.
-  { seg: "head", n: 8, rings: [[1.2, 6.2, 0, 2.2, 3.2], [2.6, 3.6, 0, 6.4, 5.2], [7.5, 2.4, 0, 8.2, 6.8], [13, 1.4, 0, 9.2, 7.5], [18, 0.6, 0, 7.8, 6.6], [21.6, -0.3, 0, 4.4, 4.1], [22.8, -0.6, 0, 1.6, 1.5]] },
+  // Head: an egg with a jaw plane under a forward chin, the skull bulging behind the neck. 92% scale against the broad shoulders.
+  { seg: "head", n: 8, rings: [[1.1,  5.7,  0.0,  2.02,  2.94],  [2.39,  3.31,  0.0,  5.89,  4.78],  [6.9,  2.21,  0.0,  7.54,  6.26],  [11.96,  1.29,  0.0,  8.46,  6.9],  [16.56,  0.55,  0.0,  7.18,  6.07],  [19.87,  -0.28,  0.0,  4.05,  3.77],  [20.98,  -0.55,  0.0,  1.47,  1.38]] },
 ];
 
 /** One side's limbs; each is placed twice, near and far. */
@@ -40,14 +40,19 @@ const LIMB_PARTS: readonly Part[] = [
   { seg: "thigh", n: 5, rings: [[40.5, -3.6, 0, 0, 0], [43.5, -3.9, 0, 2.6, 3], [46.5, -3.2, 0, 0, 0]], bias: 1 },
   // Shin (f = back): the calf bulges behind a straight shinbone, ankle bones at the end.
   { seg: "shin", n: 6, rings: [[-1.5, 0, 0, 4.6, 4.8], [3, 0.6, 0, 5.3, 5], [11, 2.6, 0, 6.2, 5.2], [24, 1.4, 0, 4.4, 3.9], [37, 0.3, 0, 3, 3], [41, 0.2, 0, 3.2, 3.5]] },
-  // Shoe wedge (f = down): flat sole 7 cm under the ankle, heel counter, instep, toe box.
-  { seg: "foot", n: 6, rings: [[-6.8, 3.6, 0, 3.6, 2.6], [-6, 3, 0, 4.6, 3.3], [0, 2.5, 0, 5.2, 4.2], [8, 3.8, 0, 3.7, 4.8], [15, 5, 0, 2.3, 5], [20.5, 5.4, 0, 1.85, 4.2], [22, 5.8, 0, 1.2, 3]] },
+  // Foot (f = down): a rounded heel, the arch lifting off the floor under the instep, the ball, a toe box that tapers to the tip.
+  { seg: "foot", n: 6, rings: [[-6.8, 3.8, 0, 2.6, 2.2], [-5.4, 3, 0, 4, 3.2], [-1, 2.4, 0, 4.6, 3.8], [5, 2.6, 0, 3.6, 4], [11, 3.9, 0, 3.1, 4.8], [15.5, 4.8, 0, 2.2, 5], [19.5, 5.4, 0, 1.6, 4.4], [22, 5.6, 0, 0.9, 2.8]] },
+  // Heel pad and ball of the foot: the two flat facets the foot stands on, so the arch reads between them.
+  { seg: "foot", n: 4, rings: [[-6.4, 6.4, 0, 0.6, 2.2], [-1.6, 6.4, 0, 0.6, 2.6]] },
+  { seg: "foot", n: 4, rings: [[11.5, 6.4, 0, 0.6, 4], [18.5, 6.4, 0, 0.6, 3.8]] },
   // Upper arm with the deltoid cap over the shoulder joint.
   { seg: "upper", n: 6, rings: [[-5.5, 0, 0, 3.6, 3.6], [-1.5, 0, 0, 6.6, 6.6], [6, 0, 0, 5.6, 5.6], [16, 0, 0, 5, 4.8], [27, 0, 0, 4, 4], [31, 0, 0, 3.5, 3.7]] },
   // Forearm: bevelled at the elbow, full near it, flat at the wrist.
   { seg: "fore", n: 6, rings: [[-2.5, 0, 0, 2.6, 2.6], [0, 0, 0, 4, 4], [7, 0, 0, 4.6, 4.3], [20, 0, 0, 3.2, 3], [26, 0, 0, 2.7, 2.5]] },
   // Mitt: a closed fist around the bar, wide along it.
   { seg: "hand", n: 6, rings: [[-0.5, 0, 0, 2.4, 3], [3, 0, 0, 3.2, 4.4], [9, 0.3, 0, 3.6, 4.6], [11.5, 0, 0, 2.2, 3.4]], bias: 6 },
+  // Thumb: a wedge from the heel of the hand wrapping the bar from the other side of the fingers.
+  { seg: "hand", n: 5, rings: [[1, -2.4, -2.6, 1.6, 1.4], [5.5, -3.6, -3.2, 1.2, 1.1], [8.5, -3, -2.6, 0, 0]], bias: 6 },
 ];
 
 const sleeve = 2.6;
@@ -63,7 +68,7 @@ const EQUIPMENT: readonly Part[] = [
   ...[RAIL_Z, -RAIL_Z].map((z): Part => ({ seg: "bar", n: 4, tone: Tone.Bar, rings: [[z - 3, 0, 0, 3.5, 7], [z + 3, 0, 0, 3.5, 7]] })),
   // Rails: run off the top of the frame, so they do not count toward its bounds. Drawn behind the
   // lifter: the near rail would otherwise slice through the hips at the bottom of the squat.
-  ...[RAIL_Z, -RAIL_Z].map((z): Part => ({ seg: "rail", n: 6, tone: Tone.Rail, frame: false, bias: -500, rings: [[0, 0, z, 1.4, 1.4], [400, 0, z, 1.4, 1.4]] })),
+  ...[RAIL_Z, -RAIL_Z].map((z): Part => ({ seg: "rail", n: 6, tone: Tone.Rail, frame: false, bias: -500, rings: [[0, 0, z, 0.8, 0.8], [400, 0, z, 0.8, 0.8]] })),
 ];
 
 /** Built mesh, flat arrays. Vertex v belongs to frame vf[v]; face i spans fv[fo[i]..fo[i+1]). */
