@@ -13,7 +13,7 @@ The logging screen is opened mid-set, between racks, on a phone. It has to be us
 | --- | --- | --- |
 | Initial JS (all `<script>` and modulepreload chunks reachable from `index.html`) | 90 KB | React 19 + react-dom is about 60 KB gzip. The rest covers UI SDK parts, the engine and the app. Preact compat would cut this sharply but only counts if UI SDK works on it. |
 | CSS | 8 KB | One stylesheet, hand-written from the mockup tokens. `@ui-sdk/core/web.css` is not imported wholesale. |
-| Fonts | 60 KB total (raw woff2, already compressed) | The mockup's two variable fonts are 140 KB together. Subset both to Basic Latin plus the glyphs the UI uses (`× − ✓ · ’ …`), keep the weight axis. Preload only the font the LCP element uses. |
+| Fonts | 60 KB total (raw woff2, already compressed) | The mockup's two variable fonts are 140 KB together. Subset both to Basic Latin plus the glyphs the UI uses (`× − ✓ · ’ …`), keep the weight axis. Preload only fonts that render in the first paint: both do (Geist for the text, Geist Mono for the weight and reps numbers). Measured with applied mobile throttling: without the Mono preload it lands 0.56 s after first paint, so the numbers paint in a fallback face and swap (CLS 0.0003); with it, Mono is ready 0.45 s before first paint at a cost of 43 ms FCP. |
 | Service worker | 3 KB | Hand-written precache, no workbox runtime. |
 
 The size check (`bun run size`) reads `dist/`, gzips each JS and CSS file at level 9, and fails when a cap is exceeded. It also fails on font bytes over the cap.
@@ -43,5 +43,5 @@ INP needs real interactions, so it is measured locally with Playwright on the pr
 ## Runtime rules that protect the budget
 
 - No WebGL, no animation library, no analytics, no third-party requests. The only network traffic is the app's own shell, and after the first load the service worker serves it.
-- Timers recompute from absolute timestamps once per second; no per-frame work.
+- Timers recompute from absolute timestamps and wake only when the shown second changes (and when the page is shown again); no per-frame work.
 - IndexedDB reads happen once at startup, in parallel with the first render of the shell.
