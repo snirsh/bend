@@ -41,3 +41,11 @@ jobs:
       - name: Typecheck
         if: steps.detect.outputs.present == 'true'
         run: bun run typecheck
+
+      - name: Build
+        if: steps.detect.outputs.present == 'true'
+        run: bun run build
+
+      - name: Size budget
+        if: steps.detect.outputs.present == 'true'
+        run: bun run size

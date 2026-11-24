@@ -2,7 +2,7 @@ import type { LoggedSession, LoggedSet } from "./types.ts";
 
 const MAX_RIR = 10;
 
-const setProblem = ({ weight, reps, rir }: LoggedSet): string | null => {
+export const setProblem = ({ weight, reps, rir }: LoggedSet): string | null => {
   if (!Number.isFinite(weight) || weight <= 0) return `weight must be a finite number > 0 kg, got ${weight}`;
   if (!Number.isInteger(reps) || reps < 0) return `reps must be an integer >= 0, got ${reps}`;
   if (!Number.isInteger(rir) || rir < 0 || rir > MAX_RIR) return `RIR must be an integer 0-${MAX_RIR}, got ${rir}`;

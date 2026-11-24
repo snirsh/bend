@@ -46,4 +46,29 @@ A bridge lasts 14 days from the first session after the gap, and a return inside
 
 `src/plan/plan.ts` holds the move catalog and PPL days. The A/B/C split and the superset pairs are still open (`TODO(sous-chef)`).
 
+## App
+
+The in-workout logging screen is a Vite + Preact (React compat) PWA in `src/app`. It works offline, has no backend and makes no network calls beyond its own files.
+
+```sh
+bun install
+bun run dev        # http://localhost:47311
+bun run build      # dist/, with dist/sw.js listing every built file
+bun run preview    # serves dist/ on http://localhost:47310
+bun run size       # fails when dist/ breaks docs/perf-budget.md
+bun run e2e        # Playwright against the preview build
+```
+
+`bun test` runs only `tests/` (see `bunfig.toml`). The Playwright specs in `e2e/` need a fresh `bun run build`. `PROOF=1 bun run e2e e2e/proof.spec.ts` also writes screenshots, a video and the INP measurement outside the repo.
+
+**Screen.** The engine prescribes the session from the history in IndexedDB and the device's local date. Sets run in superset order (A1, B1, A2, B2, then straight sets). Weight comes from the prescription, or from the last set logged this session for that exercise. Reps come from the same set last time, or the target. Log set saves the set and starts the 2:00 rest. Finish saves the session and starts the 5:00 cooldown. The workout in progress is saved after every change, so a reload resumes it.
+
+**Timers** store absolute end times and recompute on every tick and whenever the page is shown again, so they stay right through a screen lock. A notification at the end appears only when notifications were already allowed, which you can do from the menu.
+
+**Offline.** After the first load, the service worker serves the whole app from its cache. A new build gets a new cache name, and the old cache is deleted once the new worker takes over.
+
+**Export and import** live in the ⋯ menu. Export downloads every stored session as JSON (`app: "bend"`, `schemaVersion: 1`). Import checks the whole file with the engine's rules and rejects it with the reason if anything is wrong. A valid file is merged: sessions you already have are skipped, and nothing stored is removed or replaced.
+
+**Dev fixture.** The real A/B/C split in `src/plan/plan.ts` is still empty, so every day runs `src/app/dev-fixture.ts`: Smith squat + chest supported row, then bench press, with fixture cue texts. The app shows a "dev fixture" chip while it is in use. It is not the real split.
+
 Made by [Snir Sharristh](https://snirsh.codes).
