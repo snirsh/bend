@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { TIMERS_KEY, parseTimers, view, type TimerState, type TimerView, type Timers } from "../timer.ts";
+import { TIMERS_KEY, msUntilChange, observe, parseTimers, view, type TimerState, type TimerView, type Timers } from "../timer.ts";
 
 type TimerName = keyof Timers;
 export type TimerAction = (state: TimerState, now: number) => TimerState;
 
-const TICK_MS = 250;
 const LABELS: Record<TimerName, string> = { rest: "Rest is over", cooldown: "Cooldown done" };
 
 const readStored = (): Timers => {
@@ -32,48 +31,63 @@ const notify = async (title: string) => {
 };
 
 /**
- * Rest and cooldown timers. State holds absolute times, so the shown time is recomputed
- * from Date.now() on every tick and whenever the page becomes visible again.
+ * Rest and cooldown timers. State holds absolute times. Every refresh records the clock with
+ * `observe`, so a running timer ends exactly once, and the display wakes at the next whole-second
+ * change plus whenever the page is shown again.
  */
 export const useTimers = () => {
   const [timers, setTimers] = useState(readStored);
   const latest = useRef(timers);
   const [now, setNow] = useState(Date.now);
-  const wasDone = useRef<Record<TimerName, boolean>>({ rest: false, cooldown: false });
 
-  const views: Record<TimerName, TimerView> = { rest: view(timers.rest, now), cooldown: view(timers.cooldown, now) };
-  const ticking = timers.rest.kind === "running" || timers.cooldown.kind === "running";
+  const tick = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const refreshRef = useRef<() => void>(() => {});
+
+  /** Saves, shows, and schedules the next wake-up at the next whole-second change. */
+  const commit = useCallback((next: Timers, at: number) => {
+    latest.current = next;
+    save(next);
+    setTimers(next);
+    setNow(at);
+    clearTimeout(tick.current);
+    const waits = [msUntilChange(next.rest, at), msUntilChange(next.cooldown, at)].filter((ms) => ms !== null);
+    if (waits.length > 0) tick.current = setTimeout(() => refreshRef.current(), Math.min(...waits));
+  }, []);
+
+  const refresh = useCallback(() => {
+    const at = Date.now();
+    const before = latest.current;
+    const next = { rest: observe(before.rest, at), cooldown: observe(before.cooldown, at) };
+    for (const name of ["rest", "cooldown"] as const) {
+      if (before[name].kind !== "done" && next[name].kind === "done" && document.visibilityState === "hidden") {
+        void notify(LABELS[name]);
+      }
+    }
+    commit(next, at);
+  }, [commit]);
+  refreshRef.current = refresh;
 
   useEffect(() => {
-    const refresh = () => setNow(Date.now());
+    refresh();
     const events = ["pageshow", "focus"] as const;
     for (const e of events) window.addEventListener(e, refresh);
     document.addEventListener("visibilitychange", refresh);
-    const id = ticking ? setInterval(refresh, TICK_MS) : undefined;
     return () => {
       for (const e of events) window.removeEventListener(e, refresh);
       document.removeEventListener("visibilitychange", refresh);
-      clearInterval(id);
+      clearTimeout(tick.current);
     };
-  }, [ticking]);
-
-  useEffect(() => {
-    for (const name of ["rest", "cooldown"] as const) {
-      const done = views[name].done;
-      if (done && !wasDone.current[name] && document.visibilityState === "hidden") void notify(LABELS[name]);
-      wasDone.current[name] = done;
-    }
-  });
+  }, [refresh]);
 
   /** Applies an action and saves the result at once, so a lock right after a tap keeps it. */
-  const act = useCallback((name: TimerName, action: TimerAction) => {
-    const at = Date.now();
-    const next = { ...latest.current, [name]: action(latest.current[name], at) };
-    latest.current = next;
-    save(next);
-    setNow(at);
-    setTimers(next);
-  }, []);
+  const act = useCallback(
+    (name: TimerName, action: TimerAction) => {
+      const at = Date.now();
+      commit({ ...latest.current, [name]: action(latest.current[name], at) }, at);
+    },
+    [commit],
+  );
 
+  const views: Record<TimerName, TimerView> = { rest: view(timers.rest, now), cooldown: view(timers.cooldown, now) };
   return { views, act };
 };

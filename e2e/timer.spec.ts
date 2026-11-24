@@ -65,6 +65,9 @@ test("a wall clock jumping back does not give rest time back, and an expired res
   await expect(page.locator('[data-timer="rest"]')).toHaveAttribute("data-state", "done");
   await page.clock.setSystemTime(startedAt + 10_000);
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await expect(page.locator('[data-timer="rest"]')).toHaveAttribute("data-state", "done");
+  // Preact runs effects on animation frames, which a paused fake clock never delivers.
+  await page.clock.resume();
   await page.reload();
   await expect(page.locator('[data-timer="rest"]')).toHaveAttribute("data-state", "done");
   await expect(restTime(page)).toHaveText("0:00");

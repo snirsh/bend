@@ -10,8 +10,17 @@ export const TIMERS_KEY = "bend.timers.v1";
 
 export type TimerState =
   | { readonly kind: "idle"; readonly durationMs: number }
-  | { readonly kind: "running"; readonly durationMs: number; readonly startedAt: number; readonly endsAt: number }
-  | { readonly kind: "paused"; readonly durationMs: number; readonly remainingMs: number };
+  | {
+      readonly kind: "running";
+      readonly durationMs: number;
+      readonly startedAt: number;
+      readonly endsAt: number;
+      /** The latest clock reading seen while running. A clock that jumps back never gives time back. */
+      readonly seenAt: number;
+    }
+  | { readonly kind: "paused"; readonly durationMs: number; readonly remainingMs: number }
+  /** Ended. Stays ended whatever the clock does next, so it ends exactly once. */
+  | { readonly kind: "done"; readonly durationMs: number };
 
 export type TimerView = { readonly kind: TimerState["kind"]; readonly remainingMs: number; readonly done: boolean };
 
@@ -19,29 +28,47 @@ export type Timers = { readonly rest: TimerState; readonly cooldown: TimerState 
 
 export const idle = (durationMs: number): TimerState => ({ kind: "idle", durationMs });
 
-/** Starts from the full duration, restarting a timer that is already running. */
-export const start = (s: TimerState, now: number): TimerState => ({
+const running = (durationMs: number, now: number, remainingMs: number): TimerState => ({
   kind: "running",
-  durationMs: s.durationMs,
+  durationMs,
   startedAt: now,
-  endsAt: now + s.durationMs,
+  endsAt: now + remainingMs,
+  seenAt: now,
 });
 
-/** A clock that jumps backwards never shows more than was left at the last start or resume. */
+/** Starts from the full duration, restarting a timer that is already running or done. */
+export const start = (s: TimerState, now: number): TimerState => running(s.durationMs, now, s.durationMs);
+
 const remaining = (s: TimerState, now: number): number => {
   switch (s.kind) {
     case "idle":
       return s.durationMs;
     case "paused":
       return s.remainingMs;
+    case "done":
+      return 0;
     case "running":
-      return Math.min(Math.max(s.endsAt - now, 0), s.endsAt - s.startedAt);
+      return Math.min(Math.max(s.endsAt - Math.max(now, s.seenAt), 0), s.endsAt - s.startedAt);
   }
+};
+
+/** Records a clock reading: a running timer remembers the latest one, and ends once its time is up. */
+export const observe = (s: TimerState, now: number): TimerState => {
+  if (s.kind !== "running") return s;
+  if (remaining(s, now) === 0) return { kind: "done", durationMs: s.durationMs };
+  return now > s.seenAt ? { ...s, seenAt: now } : s;
+};
+
+/** Milliseconds until the shown whole second changes, or `null` when the display is still. */
+export const msUntilChange = (s: TimerState, now: number): number | null => {
+  if (s.kind !== "running") return null;
+  const left = remaining(s, now);
+  return left === 0 ? null : left % 1000 || 1000;
 };
 
 export const view = (s: TimerState, now: number): TimerView => {
   const remainingMs = remaining(s, now);
-  return { kind: s.kind, remainingMs, done: s.kind === "running" && remainingMs === 0 };
+  return { kind: s.kind, remainingMs, done: s.kind === "done" || (s.kind === "running" && remainingMs === 0) };
 };
 
 /** A finished timer stays finished. */
@@ -52,7 +79,7 @@ export const pause = (s: TimerState, now: number): TimerState => {
 };
 
 export const resume = (s: TimerState, now: number): TimerState =>
-  s.kind === "paused" ? { kind: "running", durationMs: s.durationMs, startedAt: now, endsAt: now + s.remainingMs } : s;
+  s.kind === "paused" ? running(s.durationMs, now, s.remainingMs) : s;
 
 export const skip = (s: TimerState): TimerState => idle(s.durationMs);
 
@@ -70,14 +97,20 @@ const isTime = (v: unknown): v is number => typeof v === "number" && Number.isFi
 
 const parseTimer = (raw: unknown, fallbackMs: number): TimerState => {
   if (!isRecord(raw)) return idle(fallbackMs);
-  const { kind, durationMs, startedAt, endsAt, remainingMs } = raw;
+  const { kind, durationMs, startedAt, endsAt, remainingMs, seenAt = startedAt } = raw;
   if (!isTime(durationMs) || durationMs <= 0) return idle(fallbackMs);
   switch (kind) {
     case "idle":
-      return idle(durationMs);
+    case "done":
+      return { kind, durationMs };
     case "running":
-      return isTime(startedAt) && isTime(endsAt) && startedAt <= endsAt && endsAt - startedAt <= durationMs
-        ? { kind, durationMs, startedAt, endsAt }
+      return isTime(startedAt) &&
+        isTime(endsAt) &&
+        isTime(seenAt) &&
+        startedAt <= endsAt &&
+        endsAt - startedAt <= durationMs &&
+        seenAt >= startedAt
+        ? { kind, durationMs, startedAt, endsAt, seenAt }
         : idle(fallbackMs);
     case "paused":
       return isTime(remainingMs) && remainingMs > 0 && remainingMs <= durationMs

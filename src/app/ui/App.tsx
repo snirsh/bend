@@ -277,7 +277,7 @@ const RoughNight = ({ checked, onChange }: { checked: boolean; onChange: (on: bo
   );
 };
 
-const STATE: Record<TimerView["kind"], string> = { idle: "idle", running: "run", paused: "paused" };
+const STATE: Record<TimerView["kind"], string> = { idle: "idle", running: "run", paused: "paused", done: "done" };
 
 const TimerCards = ({ timers }: { timers: TimersApi }) => (
   <div className="timers">
