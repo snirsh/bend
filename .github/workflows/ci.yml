@@ -73,4 +73,5 @@ jobs:
           tar -xzf gitleaks_8.30.1_linux_x64.tar.gz -C "$RUNNER_TEMP" gitleaks
 
       - name: Scan repository history
-        run: "$RUNNER_TEMP/gitleaks" detect --source . --verbose --redact --no-banner
+        run: |
+          "$RUNNER_TEMP/gitleaks" detect --source . --verbose --redact --no-banner
