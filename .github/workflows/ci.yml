@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Detect package.json
+        id: detect
+        run: |
+          if [ -f package.json ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "No package.json; skipping install, test, and typecheck."
+          fi
+
+      - name: Setup Bun
+        if: steps.detect.outputs.present == 'true'
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
+      - name: Install
+        if: steps.detect.outputs.present == 'true'
+        run: bun install
+
+      - name: Test
+        if: steps.detect.outputs.present == 'true'
+        run: bun test
+
+      - name: Typecheck
+        if: steps.detect.outputs.present == 'true'
+        run: bun run typecheck
