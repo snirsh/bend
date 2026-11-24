@@ -1,5 +1,5 @@
 /**
- * The low-poly lifter and the Smith machine as data.
+ * The low-poly lifter and its equipment as data.
  *
  * Every solid is a loft: rings of an n-gon swept along one segment's axis. A ring is
  * [t, f, s, hf, hs] in the segment's frame, centimetres: t along the axis from the frame
@@ -9,8 +9,11 @@
  * Frames (see `frames` in render.ts): a = the segment axis, s = lateral (out from the
  * midline, mirrored on the far side), f = a x s. On the torso and head f points to the
  * front; on the thigh and shin it points to the back; on the foot it points down at the
- * sole. Arms are round, so their roll does not matter.
+ * sole. Arms are round, so their roll does not matter. A box prop is a loft along its own
+ * x axis in a frame of its own, after the fixed slots.
  */
+import type { Move } from "./sample.ts";
+import type { Vec3 } from "./skeleton.ts";
 
 export const SEG = ["torso", "head", "bar", "rail", "thigh", "shin", "foot", "upper", "fore", "hand"] as const;
 export type Seg = (typeof SEG)[number];
@@ -19,7 +22,8 @@ export type Seg = (typeof SEG)[number];
 export const enum Tone { Body, Far, Bar, Rail }
 
 type Ring = readonly [t: number, f: number, s: number, hf: number, hs: number];
-type Part = { seg: Seg; n: number; rings: readonly Ring[]; tone?: Tone; bias?: number; frame?: false };
+/** `seg` names a fixed frame slot, or is a box's own slot number. `frame: false` keeps a part out of the framing bounds. */
+type Part = { seg: Seg | number; n: number; rings: readonly Ring[]; tone?: Tone; bias?: number; frame?: false };
 
 const BODY_PARTS: readonly Part[] = [
   // Pelvis block: glutes push back, a narrow crotch, the waist on top.
@@ -61,17 +65,44 @@ const sleeve = 2.6;
 const shaft = 1.5;
 /** Smith machine: rails at z = ±RAIL_Z, the bar between and past them, carriages on the rails. */
 export const RAIL_Z = 60;
-const EQUIPMENT: readonly Part[] = [
-  // Bar along z in pieces, so depth sorting holds where it passes behind the neck and through the fists.
-  ...[[-74, -63, sleeve], [-63, -30, shaft], [-30, -10, shaft], [-10, 10, shaft], [10, 30, shaft], [30, 63, shaft], [63, 74, sleeve]].map(
-    ([a, b, r]): Part => ({ seg: "bar", n: 6, tone: Tone.Bar, rings: [[a!, 0, 0, r!, r!], [b!, 0, 0, r!, r!]] }),
-  ),
+/** The bar along z in pieces, so depth sorting holds where it passes behind the neck and through the fists. */
+const BAR: readonly Part[] = [[-74, -63, sleeve], [-63, -30, shaft], [-30, -10, shaft], [-10, 10, shaft], [10, 30, shaft], [30, 63, shaft], [63, 74, sleeve]].map(
+  ([a, b, r]): Part => ({ seg: "bar", n: 6, tone: Tone.Bar, rings: [[a!, 0, 0, r!, r!], [b!, 0, 0, r!, r!]] }),
+);
+const SMITH: readonly Part[] = [
   // Carriages riding the rails at bar height; a 4-gon ring is the box inscribed in the ellipse.
   ...[RAIL_Z, -RAIL_Z].map((z): Part => ({ seg: "bar", n: 4, tone: Tone.Bar, rings: [[z - 3, 0, 0, 3.5, 7], [z + 3, 0, 0, 3.5, 7]] })),
   // Rails: run off the top of the frame, so they do not count toward its bounds. Drawn behind the
   // lifter: the near rail would otherwise slice through the hips at the bottom of the squat.
   ...[RAIL_Z, -RAIL_Z].map((z): Part => ({ seg: "rail", n: 6, tone: Tone.Rail, frame: false, bias: -500, rings: [[0, 0, z, 0.8, 0.8], [400, 0, z, 0.8, 0.8]] })),
 ];
+/** Radius of a 20 kg plate, cm. */
+const PLATE = 22.5;
+/** A free bar: one plate and a collar on each sleeve. */
+const PLATES: readonly Part[] = [1, -1].flatMap((side): Part[] => [
+  { seg: "bar", n: 10, tone: Tone.Bar, rings: [[side * 64, 0, 0, PLATE, PLATE], [side * 67.5, 0, 0, PLATE, PLATE]] },
+  { seg: "bar", n: 6, tone: Tone.Bar, rings: [[side * 67.5, 0, 0, 3.4, 3.4], [side * 69.5, 0, 0, 3.4, 3.4]] },
+]);
+/** Two handles, one through each fist, centred on the grip. */
+const handles = (halfWidth: number): Part[] =>
+  [1, -1].map((side) => ({ seg: "bar", n: 6, tone: Tone.Bar, rings: [[side * halfWidth - 6.5, 0, 0, 1.7, 1.7], [side * halfWidth + 6.5, 0, 0, 1.7, 1.7]] }));
+/**
+ * A box as a 4-sided loft along its x axis: a 4-gon ring is the box inscribed in the
+ * ellipse, so the half extents grow by √2. Cut about every 20 cm, so a long pad sorts
+ * against the body lying on it face by face, not as one far-away centroid.
+ */
+const box = ([l, h, w]: Vec3, slot: number): Part => {
+  const cuts = Math.max(1, Math.round(l / 20));
+  const ring = (i: number): Ring => [-l / 2 + (l * i) / cuts, 0, 0, (h / 2) * Math.SQRT2, (w / 2) * Math.SQRT2];
+  return { seg: slot, n: 4, tone: Tone.Rail, frame: false, rings: Array.from({ length: cuts + 1 }, (_, i) => ring(i)) };
+};
+/** Equipment parts for a move, in draw-index order: the implement, the Smith machine, then each box. */
+const equipment = ({ implement, props, grip }: Equipment): Part[] => {
+  const smith = props.some((p) => p.kind === "smith");
+  const held = implement === "handles" ? handles(grip.halfWidth) : [...BAR, ...(smith ? SMITH : PLATES)];
+  const boxes = props.flatMap((p) => (p.kind === "box" ? [p] : [])).map((p, k) => box(p.size, FRAME_COUNT + k));
+  return [...held, ...boxes];
+};
 
 /** Built mesh, flat arrays. Vertex v belongs to frame vf[v]; face i spans fv[fo[i]..fo[i+1]). */
 export type Mesh = {
@@ -84,16 +115,21 @@ export type Mesh = {
   ft: Uint8Array; // tone per face
   fb: Float32Array; // depth bias per face, cm
   vb: Uint8Array; // 1 body, 2 bar: counts toward the framing bounds; 0 never
+  frames: number; // frame slots: the fixed ones, then one per box prop
 };
 
-/** Frame slots: torso, head, bar, rail, then thigh..hand for the near side, then for the far side. */
+/** What a move holds and stands on: enough to build its equipment. */
+export type Equipment = Pick<Move, "implement" | "props" | "grip">;
+
+/** Frame slots: torso, head, bar, rail, then thigh..hand for the near side, then for the far side. Box props follow. */
 export const FRAME_COUNT = 4 + 6 * 2;
-const frameIndex = (seg: Seg, far: boolean) => {
+const frameIndex = (seg: Seg | number, far: boolean) => {
+  if (typeof seg === "number") return seg;
   const i = SEG.indexOf(seg);
   return i < 4 ? i : i + (far ? 6 : 0);
 };
 
-export const buildMesh = (): Mesh => {
+export const buildMesh = (move: Equipment): Mesh => {
   const lv: number[] = [], vf: number[] = [], vb: number[] = [];
   const fv: number[] = [], fo: number[] = [0], fn: number[] = [], ff: number[] = [], ft: number[] = [], fb: number[] = [];
 
@@ -156,7 +192,7 @@ export const buildMesh = (): Mesh => {
 
   for (const p of BODY_PARTS) add(p, false);
   for (const far of [false, true]) for (const p of LIMB_PARTS) add(p, far);
-  for (const p of EQUIPMENT) add(p, false);
+  for (const p of equipment(move)) add(p, false);
 
   return {
     lv: new Float32Array(lv),
@@ -168,5 +204,6 @@ export const buildMesh = (): Mesh => {
     ft: new Uint8Array(ft),
     fb: new Float32Array(fb),
     vb: new Uint8Array(vb),
+    frames: FRAME_COUNT + move.props.filter((p) => p.kind === "box").length,
   };
 };

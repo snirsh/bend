@@ -5,10 +5,11 @@
  */
 import { skeleton, type Vec2, type Vec3 } from "../../moves/skeleton.ts";
 import { poseAt, type Move } from "../../moves/sample.ts";
-import { buildMesh, FRAME_COUNT, RAIL_Z, Tone } from "../../moves/figure.ts";
+import { buildMesh, RAIL_Z, Tone } from "../../moves/figure.ts";
 
 /** Camera and light. Yaw turns the camera from the pure side view toward the lifter's front. */
 export const VIEW = {
+  /** Defaults only: a move names its own camera. */
   yaw: -25,
   elevation: 8,
   /** Toward the light in camera space: x right, y up, z toward the viewer. */
@@ -37,8 +38,8 @@ export const VIEW = {
   levels: 32,
 };
 
-/** Floor plane footprint, cm: under the lifter and out to the rails. */
-const FLOOR = { x0: -50, x1: 42, z: RAIL_Z + 6 };
+/** Floor plane footprint, cm: under the lifter and out to the rails, grown to reach past every box prop. */
+const FLOOR = { x0: -50, x1: 42, z: RAIL_Z + 6, margin: 12 };
 
 type Rgb = [number, number, number];
 
@@ -64,7 +65,7 @@ const camera = (yaw: number, elevation: number) => {
 const Z: Vec3 = [0, 0, 1];
 const Y: Vec3 = [0, 1, 0];
 
-/** World frames (origin, axis, front, side) for every frame slot in figure.ts's order. */
+/** World frames (origin, axis, front, side) for every frame slot in figure.ts's order, then one per box prop. */
 const frames = (move: Move, t: number, out: Float64Array) => {
   const pose = poseAt(move, t);
   const sk = skeleton(pose);
@@ -94,6 +95,23 @@ const frames = (move: Move, t: number, out: Float64Array) => {
     put(l.elbow, fore, elbowRef, 1);
     put(l.wrist, fore, Z, side);
   }
+  for (const p of move.props) if (p.kind === "box") put(p.at, [Math.cos(rad(p.tilt ?? 0)), Math.sin(rad(p.tilt ?? 0)), 0], Z, 1);
+};
+
+/** The floor quad at the floor prop's height, or none. */
+const floorQuad = (move: Move): Vec3[] => {
+  const floor = move.props.find((p) => p.kind === "floor");
+  if (!floor || floor.kind !== "floor") return [];
+  let { x0, x1, z } = FLOOR;
+  for (const p of move.props) {
+    if (p.kind !== "box") continue;
+    const [c, s] = [Math.abs(Math.cos(rad(p.tilt ?? 0))), Math.abs(Math.sin(rad(p.tilt ?? 0)))];
+    const half = (c * p.size[0] + s * p.size[1]) / 2 + FLOOR.margin;
+    x0 = Math.min(x0, p.at[0] - half);
+    x1 = Math.max(x1, p.at[0] + half);
+    z = Math.max(z, Math.abs(p.at[2]) + p.size[2] / 2 + FLOOR.margin);
+  }
+  return [[x0, floor.y, -z], [x1, floor.y, -z], [x1, floor.y, z], [x0, floor.y, z]];
 };
 
 const parse = (hex: string): Rgb => {
@@ -132,11 +150,11 @@ export type Area = { x: number; y: number; w: number; h: number };
  * goes; it defaults to the whole canvas. Call `draw(t)` with loop time t in [0, 1).
  */
 export const mountLoop = (canvas: HTMLCanvasElement, move: Move, area?: Area) => {
-  const mesh = buildMesh();
+  const mesh = buildMesh(move);
   const { lv, vf, fv, fo, fn, ff, ft, fb, vb } = mesh;
   const nv = vf.length;
   const nf = ft.length;
-  const cam = camera(VIEW.yaw, VIEW.elevation);
+  const cam = camera(move.camera?.yaw ?? VIEW.yaw, move.camera?.elevation ?? VIEW.elevation);
   const light = unit([
     cam.right[0] * VIEW.light[0] + cam.up[0] * VIEW.light[1] + cam.toward[0] * VIEW.light[2],
     cam.right[1] * VIEW.light[0] + cam.up[1] * VIEW.light[1] + cam.toward[1] * VIEW.light[2],
@@ -148,9 +166,9 @@ export const mountLoop = (canvas: HTMLCanvasElement, move: Move, area?: Area) =>
     cam.right[2] * VIEW.rim[0] + cam.up[2] * VIEW.rim[1] + cam.toward[2] * VIEW.rim[2],
   ]);
 
-  const world = new Float64Array(FRAME_COUNT * 12);
+  const world = new Float64Array(mesh.frames * 12);
   /** Per frame: projected origin and axes (x, y, depth each), then axis·light, then axis·rim. */
-  const proj = new Float64Array(FRAME_COUNT * 18);
+  const proj = new Float64Array(mesh.frames * 18);
   const px = new Float32Array(nv);
   const py = new Float32Array(nv);
   const pz = new Float32Array(nv);
@@ -159,7 +177,7 @@ export const mountLoop = (canvas: HTMLCanvasElement, move: Move, area?: Area) =>
 
   const project = (t: number, k: number, ox: number, oy: number) => {
     frames(move, t, world);
-    for (let i = 0; i < FRAME_COUNT; i++) {
+    for (let i = 0; i < mesh.frames; i++) {
       const w = i * 12, p = i * 18;
       for (let j = 0; j < 4; j++) {
         const x = world[w + j * 3]!, y = world[w + j * 3 + 1]!, z = world[w + j * 3 + 2]!;
@@ -192,7 +210,7 @@ export const mountLoop = (canvas: HTMLCanvasElement, move: Move, area?: Area) =>
     project(t, 1, 0, 0);
     for (let v = 0; v < nv; v++) if (vb[v] === 1 || (vb[v] && VIEW.fit === "all")) grow(px[v]!, py[v]!);
   }
-  const floor: Vec3[] = [[FLOOR.x0, 0, -FLOOR.z], [FLOOR.x1, 0, -FLOOR.z], [FLOOR.x1, 0, FLOOR.z], [FLOOR.x0, 0, FLOOR.z]];
+  const floor = floorQuad(move);
   if (VIEW.fit === "all") for (const c of floor) grow(dot(c, cam.right), -dot(c, cam.up));
 
   const ctx = canvas.getContext("2d")!;
