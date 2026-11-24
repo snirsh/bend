@@ -15,6 +15,7 @@ export const Menu = ({ session }: Props) => {
   const dialog = useRef<HTMLDialogElement>(null);
   const file = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const [confirming, setConfirming] = useState(false);
   const [permission, setPermission] = useState(() => (typeof Notification === "undefined" ? "unsupported" : Notification.permission));
   const { phase } = session;
   const logged = phase.kind === "active" ? phase.workout.logged.length : 0;
@@ -42,6 +43,7 @@ export const Menu = ({ session }: Props) => {
         aria-haspopup="dialog"
         onClick={() => {
           setMessage(null);
+          setConfirming(false);
           dialog.current?.showModal();
         }}
       >
@@ -52,7 +54,7 @@ export const Menu = ({ session }: Props) => {
         </svg>
       </button>
       <dialog className="menu" ref={dialog} aria-labelledby="menu-title" onClick={(e) => e.target === dialog.current && dialog.current.close()}>
-        <h2 id="menu-title">Data</h2>
+        <h2 id="menu-title">Menu</h2>
         <p>Everything stays on this device. Import adds sessions to your history and never removes any.</p>
         <div className="menu-actions">
           <button className="tbtn" type="button" onClick={exportNow}>
@@ -69,16 +71,6 @@ export const Menu = ({ session }: Props) => {
             data-testid="import-file"
             onChange={(e) => void importNow(e.target.files?.[0])}
           />
-          {phase.kind === "active" && (
-            <button
-              className="tbtn"
-              type="button"
-              disabled={logged === 0}
-              onClick={() => void session.finish().then((ok) => ok && dialog.current?.close())}
-            >
-              {logged === 0 ? "Finish early (log a set first)" : `Finish early, save ${logged} set${logged === 1 ? "" : "s"}`}
-            </button>
-          )}
           {permission === "default" && (
             <button
               className="tbtn"
@@ -91,6 +83,22 @@ export const Menu = ({ session }: Props) => {
           <button className="tbtn" type="button" onClick={() => dialog.current?.close()}>
             Close
           </button>
+          {phase.kind === "active" && (
+            <button
+              className="tbtn danger"
+              type="button"
+              disabled={logged === 0}
+              onClick={() =>
+                confirming ? void session.finish().then((ok) => ok && dialog.current?.close()) : setConfirming(true)
+              }
+            >
+              {logged === 0
+                ? "Finish early (log a set first)"
+                : confirming
+                  ? `Tap again to save ${logged} set${logged === 1 ? "" : "s"} and finish`
+                  : "Finish early"}
+            </button>
+          )}
         </div>
         {message && (
           <p className="notice" data-tone={message.ok ? "ok" : "error"} role={message.ok ? "status" : "alert"} style={{ marginTop: 12 }}>

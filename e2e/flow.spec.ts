@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { importBackup, logPrefilled, logSetButton, mockupHistory, repsInput, savedWorkout, restTime, weightInput } from "./helpers.ts";
+import { importBackup, logPrefilled, logSetButton, mockupHistory, repsInput, savedHistory, savedWorkout, restTime, weightInput } from "./helpers.ts";
 
 test("a never-logged exercise asks for a starting weight with the field focused", async ({ page }) => {
   await page.goto("/");
@@ -60,4 +60,39 @@ test("a malformed import is rejected with a clear error and keeps history", asyn
   await expect(page.getByRole("alert")).toContainText("Not a bend backup");
   await page.getByRole("button", { name: "Close" }).click();
   await expect(weightInput(page)).toHaveValue("80");
+});
+
+test("a deload after a 1-week gap shows its badge and lighter weight", async ({ page }) => {
+  const weekAgo = new Date(Date.now() - 7 * 86_400_000);
+  await page.goto("/");
+  await importBackup(page, mockupHistory(weekAgo));
+  await expect(page.getByText(/^session B · deload/)).toBeVisible();
+  await expect(page.locator(".mode-badge")).toHaveText("deload");
+  // 90% of 80 is 72, rounded down to the 2.5 kg grid.
+  await expect(weightInput(page)).toHaveValue("70");
+  await expect(page.getByRole("heading", { name: "Squat · set 1 of 2" })).toBeVisible();
+});
+
+test("a bridge after a 2-week gap shows the target RPE", async ({ page }) => {
+  await page.goto("/");
+  await importBackup(page, mockupHistory(new Date(Date.now() - 18 * 86_400_000)));
+  await expect(page.locator(".mode-badge")).toHaveText("bridge · RPE 5");
+  await expect(weightInput(page)).toHaveValue("62.5");
+});
+
+test("finishing early takes a second tap and saves only the logged sets", async ({ page }) => {
+  await page.goto("/");
+  await importBackup(page, mockupHistory());
+  await logPrefilled(page);
+  await logPrefilled(page);
+  await page.getByRole("button", { name: "Menu" }).click();
+  await page.getByRole("button", { name: "Finish early" }).click();
+  await expect(page.getByRole("heading", { name: "Session B saved" })).toBeHidden();
+  await page.getByRole("button", { name: "Tap again to save 2 sets and finish" }).click();
+  await expect(page.getByRole("heading", { name: "Session B saved" })).toBeVisible();
+  await expect(page.getByText("2 sets · 2 moves")).toBeVisible();
+  const history = await savedHistory(page);
+  expect(history.map((s) => s.letter)).toEqual(["A", "B"]);
+  await page.getByRole("button", { name: "Start next session" }).click();
+  await expect(page.getByText(/^session C/)).toBeVisible();
 });

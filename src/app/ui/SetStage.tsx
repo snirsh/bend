@@ -71,7 +71,7 @@ export const SetStage = ({ next, label, mode, onLog }: Props) => {
           <span className="last">{weight === null ? "pick a starting weight" : `kg · ±${formatKg(increment)}`}</span>
         </div>
         <NumberInput value={weight} onValueChange={setWeight} min={increment} max={500} step={increment} largeStep={increment * 4}>
-          <NumberInputGroup className="big-field">
+          <NumberInputGroup className="big-field" data-primary="">
             <NumberInputDecrement className="step" aria-label="Decrease weight">
               −
             </NumberInputDecrement>

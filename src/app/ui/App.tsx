@@ -52,18 +52,13 @@ export const App = () => {
 type SessionApi = ReturnType<typeof useSession>;
 type TimersApi = ReturnType<typeof useTimers>;
 
-const AppBar = ({ meta, session, mode }: { meta: string; session: SessionApi; mode?: string }) => (
+const AppBar = ({ meta, session }: { meta: string; session: SessionApi }) => (
   <header className="appbar">
     <div>
       <p className="brand">bend</p>
       <div className="meta">{meta}</div>
     </div>
     <div className="appbar-end">
-      {mode && (
-        <span className="chip" data-tone="mode">
-          {mode}
-        </span>
-      )}
       {usingFixture && <span className="chip">dev fixture</span>}
       <Menu session={session} />
     </div>
@@ -116,9 +111,8 @@ const Active = ({
   return (
     <>
       <AppBar
-        meta={`session ${letter} · ${blockMeta(workout, slot)}`}
+        meta={`session ${letter}${mode === "normal" ? "" : ` · ${mode}`} · ${blockMeta(workout, slot)}`}
         session={session}
-        {...(mode !== "normal" ? { mode } : {})}
       />
       <main className="main">
         {next && current ? (
@@ -356,7 +350,7 @@ const Finished = ({ logged, session, timers }: { logged: LoggedSession; session:
             {logged.exercises.map((e) => (
               <li key={e.exerciseId}>
                 <span>{nameOf(e.exerciseId)}</span>
-                <span className="last">{e.sets.map((s) => `${kg(s.weight)}×${s.reps}`).join("  ")}</span>
+                <span className="last">{e.sets.map((s) => `${kg(s.weight)}×${s.reps}`).join(" · ")}</span>
               </li>
             ))}
           </ul>
