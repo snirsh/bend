@@ -6,7 +6,7 @@ import { gzipSync } from "node:zlib";
 
 const DIST = "dist";
 const KB = 1024;
-const CAPS = { js: 90 * KB, css: 8 * KB, fonts: 60 * KB, sw: 3 * KB };
+const CAPS = { js: 90 * KB, lazyJs: 16 * KB, css: 8 * KB, fonts: 60 * KB, sw: 3 * KB };
 
 const files = (dir: string): string[] =>
   readdirSync(dir).flatMap((name) => {
@@ -19,11 +19,14 @@ const all = files(DIST);
 const html = readFileSync(join(DIST, "index.html"), "utf8");
 // Initial JS: every script and modulepreload the HTML references.
 const initialJs = [...html.matchAll(/(?:src|href)="\/(assets\/[^"]+\.js)"/g)].map((m) => join(DIST, m[1]!));
+// Lazy JS: every other chunk, i.e. the loop code and one chunk per move.
+const lazyJs = all.filter((p) => p.endsWith(".js") && p.startsWith(join(DIST, "assets")) && !initialJs.includes(p));
 const css = all.filter((p) => p.endsWith(".css"));
 const fonts = all.filter((p) => p.endsWith(".woff2"));
 
 const rows = [
   { name: "initial JS (gzip)", bytes: initialJs.reduce((n, p) => n + gzip(p), 0), cap: CAPS.js },
+  { name: "lazy JS (gzip)", bytes: lazyJs.reduce((n, p) => n + gzip(p), 0), cap: CAPS.lazyJs },
   { name: "CSS (gzip)", bytes: css.reduce((n, p) => n + gzip(p), 0), cap: CAPS.css },
   { name: "fonts (woff2)", bytes: fonts.reduce((n, p) => n + statSync(p).size, 0), cap: CAPS.fonts },
   { name: "service worker (gzip)", bytes: gzip(join(DIST, "sw.js")), cap: CAPS.sw },

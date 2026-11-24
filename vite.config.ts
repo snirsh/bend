@@ -46,6 +46,6 @@ export default defineConfig({
   plugins: [react(), precache()],
   resolve: { alias: preact },
   build: { target: "es2022", assetsInlineLimit: 0, modulePreload: { polyfill: false } },
-  preview: { port: 47310, strictPort: true },
-  server: { port: 47311, strictPort: true },
+  preview: { port: Number(process.env.PORT ?? 47310), strictPort: true },
+  server: { port: Number(process.env.DEV_PORT ?? 47311), strictPort: true },
 });

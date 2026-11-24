@@ -11,7 +11,9 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k.startsWith("bend-") && k !== CACHE).map((k) => caches.delete(k))))
+      // Keep the previous build's cache one more version: a page opened on it may still
+      // lazy-load its movement loop from there. Caches list in creation order.
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith("bend-") && k !== CACHE).slice(0, -1).map((k) => caches.delete(k))))
       .then(() => self.clients.claim()),
   );
 });

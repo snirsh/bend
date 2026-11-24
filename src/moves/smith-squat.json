@@ -1,0 +1,13 @@
+{"id":"smith-squat","view":"side","camera":{"yaw":-25,"elevation":8},"implement":"barbell","durationMs":3600,"keyPose":6,"anchor":"heel","grip":{"halfWidth":30.5,"pole":[-0.4,-1,0.4]},"props":[{"kind":"floor","y":0},{"kind":"smith","x":7.5}],"keyframes":[
+    {"t":0,"root":[-0.1,91.9],"joints":{"trunk":17.7,"neck":0,"hip":19.7,"knee":4,"ankle":2},"bar":[7.5,148.8]},
+    {"t":0.1,"root":[-0.1,91.9],"joints":{"trunk":17.7,"neck":0,"hip":19.7,"knee":4,"ankle":2},"bar":[7.5,148.8]},
+    {"t":0.18,"root":[-8.4,89.2],"joints":{"trunk":26.1,"neck":0,"hip":45,"knee":27.1,"ankle":8.2},"bar":[7.5,144.3]},
+    {"t":0.26,"root":[-15.3,82.6],"joints":{"trunk":33.4,"neck":0,"hip":68.8,"knee":49.8,"ankle":14.4},"bar":[7.5,135.3]},
+    {"t":0.34,"root":[-20.1,72.6],"joints":{"trunk":38.8,"neck":0,"hip":90.5,"knee":72.3,"ankle":20.599999999999998},"bar":[7.5,122.9]},
+    {"t":0.42,"root":[-22.2,60.4],"joints":{"trunk":41.2,"neck":0,"hip":108.7,"knee":94.3,"ankle":26.8},"bar":[7.5,109.5]},
+    {"t":0.52,"root":[-21.2,47.5],"joints":{"trunk":40.1,"neck":0,"hip":122.1,"knee":115,"ankle":33},"bar":[7.5,97.2]},
+    {"t":0.6,"root":[-22.2,60.4],"joints":{"trunk":41.2,"neck":0,"hip":108.7,"knee":94.3,"ankle":26.8},"bar":[7.5,109.5]},
+    {"t":0.66,"root":[-20.1,72.6],"joints":{"trunk":38.8,"neck":0,"hip":90.5,"knee":72.3,"ankle":20.599999999999998},"bar":[7.5,122.9]},
+    {"t":0.72,"root":[-15.3,82.6],"joints":{"trunk":33.4,"neck":0,"hip":68.8,"knee":49.8,"ankle":14.4},"bar":[7.5,135.3]},
+    {"t":0.78,"root":[-8.4,89.2],"joints":{"trunk":26.1,"neck":0,"hip":45,"knee":27.1,"ankle":8.2},"bar":[7.5,144.3]},
+    {"t":0.86,"root":[-2.2,91.7],"joints":{"trunk":19.8,"neck":0,"hip":26,"knee":9.8,"ankle":3.55},"bar":[7.5,148.2]}],"steps":[{"keyframe":0,"label":"top"},{"keyframe":3,"label":"lowering"},{"keyframe":6,"label":"bottom"}]}

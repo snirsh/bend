@@ -56,6 +56,7 @@ bun run dev        # http://localhost:47311
 bun run build      # dist/, with dist/sw.js listing every built file
 bun run preview    # serves dist/ on http://localhost:47310
 bun run size       # fails when dist/ breaks docs/perf-budget.md
+PORT=47320 bun run e2e  # PORT moves preview and Playwright; DEV_PORT moves dev
 bun run e2e        # Playwright against the preview build
 ```
 
@@ -63,9 +64,11 @@ bun run e2e        # Playwright against the preview build
 
 **Screen.** The engine prescribes the session from the history in IndexedDB and the device's local date. Sets run in superset order (A1, B1, A2, B2, then straight sets). Weight comes from the prescription, or from the last set logged this session for that exercise. Reps come from the same set last time, or the target. Log set saves the set and starts the 2:00 rest. Finish saves the session and starts the 5:00 cooldown. The workout in progress is saved after every change, so a reload resumes it.
 
+**Movement loop.** The cue card's 88 px slot first shows a poster of the move's key pose, `public/moves/<id>-<dark|light>.webp`, so the first paint costs no JS. Once the screen is idle it loads the loop code and the move's file as lazy chunks, checks the file with `parseMove` (`src/moves/validate.ts`) and draws the loop on a canvas over the poster. An invalid file logs one warning and the poster stays as the still. The loop draws only while the page is visible and the slot is on screen. A pause button stops it (WCAG 2.2.2). Paused, or under reduced motion, the slot shows the key pose with previous and next buttons through the move's labelled steps. Reduced motion is followed live, and a pause stands through it. A new move is one file, `src/moves/<id>.json` with a catalog id, then `bun run posters` to render its two posters. Handles may ride lever arms, `"lever": { "pivot": [x, y], "length": cm }`. `parseMove` rejects a lever on a barbell, and any keyframe whose handle sits more than 0.5 cm off the lever's arc.
+
 **Timers** store absolute end times and recompute on every tick and whenever the page is shown again, so they stay right through a screen lock. A notification at the end appears only when notifications were already allowed, which you can do from the menu.
 
-**Offline.** After the first load, the service worker serves the whole app from its cache. A new build gets a new cache name, and the old cache is deleted once the new worker takes over.
+**Offline.** After the first load, the service worker serves the whole app from its cache. A new build gets a new cache name. When the new worker takes over it keeps the previous cache for one more version, so a page still open on the old build can lazy-load its loop, and deletes older ones.
 
 **Export and import** live in the ⋯ menu. Export downloads every stored session as JSON (`app: "bend"`, `schemaVersion: 1`). Import checks the whole file with the engine's rules and rejects it with the reason if anything is wrong. A valid file is merged: sessions you already have are skipped, and nothing stored is removed or replaced.
 

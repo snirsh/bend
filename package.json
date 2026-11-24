@@ -9,6 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "size": "bun scripts/size.ts",
+    "posters": "bun scripts/posters.ts",
     "e2e": "playwright test"
   },
   "devDependencies": {

@@ -81,8 +81,11 @@ test("the cue tooltip opens on hover, keyboard focus and tap", async ({ page, br
 for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 800 }]) {
   test(`every control is at least 44 × 44 px at ${viewport.width}px`, async ({ page }) => {
     await page.setViewportSize(viewport);
+    // Reduced motion shows every loop control: play and the step buttons.
+    await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
     await importBackup(page, mockupHistory());
+    await expect(page.getByRole("button", { name: "Next step" })).toBeVisible();
     const controls = page.locator('button:visible, input:visible, a:visible, [role="switch"]:visible, [role="radio"]:visible').and(page.locator(':not([aria-hidden="true"])'));
     const count = await controls.count();
     expect(count).toBeGreaterThan(10);

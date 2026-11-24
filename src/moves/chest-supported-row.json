@@ -1,0 +1,12 @@
+{"id":"chest-supported-row","view":"side","camera":{"yaw":0,"elevation":12},"implement":"handles","lever":{"pivot":[27.3,69],"length":35.1},"durationMs":3600,"keyPose":0,"anchor":"heel","grip":{"halfWidth":27,"pole":[-1,0,0.2]},"props":[{"kind":"floor","y":0},{"kind":"box","at":[11.8,75.7,0],"size":[49,13,26],"tilt":35},{"kind":"box","at":[-46.8,51.1,0],"size":[24,7,34]},{"kind":"box","at":[-43.8,23.8,0],"size":[7,47.6,7]},{"kind":"box","at":[28.3,41.6,0],"size":[8,83.2,8]},{"kind":"box","at":[-8.3,2.5,0],"size":[81.1,5,6]},{"kind":"box","at":[27.3,69,0],"size":[6,6,80]}],"keyframes":[
+    {"t":0,"root":[-40.8,64.5],"joints":{"trunk":55,"neck":0,"hip":123,"knee":68,"ankle":0},"bar":[23.4,34.1]},
+    {"t":0.08,"root":[-40.8,64.5],"joints":{"trunk":55,"neck":0,"hip":123,"knee":68,"ankle":0},"bar":[23.4,34.1]},
+    {"t":0.16,"root":[-40.8,64.5],"joints":{"trunk":55,"neck":0,"hip":123,"knee":68,"ankle":0},"bar":[7.3,40.2]},
+    {"t":0.23,"root":[-40.8,64.5],"joints":{"trunk":55,"neck":0,"hip":123,"knee":68,"ankle":0},"bar":[-4,53.2]},
+    {"t":0.3,"root":[-40.8,64.5],"joints":{"trunk":55,"neck":0,"hip":123,"knee":68,"ankle":0},"bar":[-7.8,67.1]},
+    {"t":0.36,"root":[-40.8,64.5],"joints":{"trunk":55,"neck":0,"hip":123,"knee":68,"ankle":0},"bar":[-7.1,75.8]},
+    {"t":0.5,"root":[-40.8,64.5],"joints":{"trunk":55,"neck":0,"hip":123,"knee":68,"ankle":0},"bar":[-7.1,75.8]},
+    {"t":0.6,"root":[-40.8,64.5],"joints":{"trunk":55,"neck":0,"hip":123,"knee":68,"ankle":0},"bar":[-7.8,67.1]},
+    {"t":0.7,"root":[-40.8,64.5],"joints":{"trunk":55,"neck":0,"hip":123,"knee":68,"ankle":0},"bar":[-4,53.2]},
+    {"t":0.8,"root":[-40.8,64.5],"joints":{"trunk":55,"neck":0,"hip":123,"knee":68,"ankle":0},"bar":[4.9,41.9]},
+    {"t":0.9,"root":[-40.8,64.5],"joints":{"trunk":55,"neck":0,"hip":123,"knee":68,"ankle":0},"bar":[16.6,35.6]}],"steps":[{"keyframe":0,"label":"reach"},{"keyframe":3,"label":"pull"},{"keyframe":5,"label":"squeeze"}]}
