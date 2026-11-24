@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { importBackup, logPrefilled, mockupHistory } from "./helpers.ts";
 
 /** Where the raw axe results go. Outside the repo by default. */
-const OUT = process.env.AXE_OUT ?? join(process.env.HOME ?? ".", "code/bend-logging-notes/proof/axe");
+const OUT = process.env.AXE_OUT ?? join(process.env.HOME ?? ".", "code/bend-loops-notes/proof/axe");
 
 const states: Record<string, (page: Page) => Promise<void>> = {
   fresh: async (page) => {
@@ -18,6 +18,18 @@ const states: Record<string, (page: Page) => Promise<void>> = {
     for (let i = 0; i < 3; i++) await logPrefilled(page);
     await page.getByRole("button", { name: /More about the .* cue/ }).click();
     await expect(page.getByRole("tooltip")).toBeVisible();
+  },
+  "loop-playing": async (page) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.goto("/");
+    await expect(page.locator(".loop canvas")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Pause squat loop" })).toBeVisible();
+  },
+  "loop-step-through": async (page) => {
+    await page.goto("/");
+    await expect(page.locator(".loop canvas")).toBeVisible();
+    await page.getByRole("button", { name: "Next step" }).click();
+    await expect(page.getByRole("group", { name: "Squat movement loop" }).getByRole("status")).toHaveText(/ of /);
   },
   finished: async (page) => {
     await page.goto("/");

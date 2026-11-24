@@ -1,14 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
-import { readdirSync, readFileSync } from "node:fs";
-import { logPrefilled } from "./helpers.ts";
+import { logPrefilled, moveFiles, type MoveFile } from "./helpers.ts";
 
-type MoveFile = { id: string; keyPose: number; steps: { keyframe: number; label: string }[] };
-const MOVES = new URL("../src/moves/", import.meta.url);
-/** Every move that has a file, so bench and row join the suite when their files land. */
-const moves: MoveFile[] = readdirSync(MOVES)
-  .filter((f) => f.endsWith(".json"))
-  .map((f) => JSON.parse(readFileSync(new URL(f, MOVES), "utf8")));
-const squat = moves.find((m) => m.id === "smith-squat")!;
+const squat = moveFiles.find((m) => m.id === "smith-squat")!;
 
 /** The status a still at `step` reads, e.g. "3 of 3 · bottom". */
 const status = (move: MoveFile, step: number) => `${step + 1} of ${move.steps.length} · ${move.steps[step]!.label}`;
@@ -69,7 +62,7 @@ const tabTo = async (page: Page, name: string) => {
   expect(parseFloat(ring.outlineWidth)).toBeGreaterThanOrEqual(2);
 };
 
-for (const move of moves) {
+for (const move of moveFiles) {
   test(`the ${move.id} loop takes over from its poster and moves`, async ({ page }) => {
     await page.goto("/");
     await reach(page, move.id);

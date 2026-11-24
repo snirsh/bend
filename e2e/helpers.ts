@@ -1,4 +1,12 @@
 import { expect, type Page } from "@playwright/test";
+import { readdirSync, readFileSync } from "node:fs";
+
+export type MoveFile = { id: string; keyPose: number; steps: { keyframe: number; label: string }[] };
+const MOVES = new URL("../src/moves/", import.meta.url);
+/** Every move that has a file in src/moves, so a new move joins the loop specs by existing. */
+export const moveFiles: readonly MoveFile[] = readdirSync(MOVES)
+  .filter((f) => f.endsWith(".json"))
+  .map((f) => JSON.parse(readFileSync(new URL(f, MOVES), "utf8")));
 
 const pad = (n: number) => String(n).padStart(2, "0");
 /** The local calendar date `days` from now, as the app computes it. */
