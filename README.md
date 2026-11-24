@@ -44,7 +44,7 @@ A bridge lasts 14 days from the first session after the gap, and a return inside
 
 **Increments** (`INCREMENTS_KG`): barbell 2.5, smith 2.5, dumbbell 2, cable 2.5, machine 2.5.
 
-`src/plan/plan.ts` holds the move catalog and PPL days. The A/B/C split and the superset pairs are still open (`TODO(sous-chef)`).
+`src/plan/plan.ts` holds the move catalog and PPL days. The A/B/C split and the superset pairs are still open (`TODO`).
 
 ## App
 
@@ -73,5 +73,9 @@ bun run e2e        # Playwright against the preview build
 **Export and import** live in the ⋯ menu. Export downloads every stored session as JSON (`app: "bend"`, `schemaVersion: 1`). Import checks the whole file with the engine's rules and rejects it with the reason if anything is wrong. A valid file is merged: sessions you already have are skipped, and nothing stored is removed or replaced.
 
 **Dev fixture.** The real A/B/C split in `src/plan/plan.ts` is still empty, so every day runs `src/app/dev-fixture.ts`: Smith squat + chest supported row, then bench press, with fixture cue texts. The app shows a "dev fixture" chip while it is in use. It is not the real split.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
 
 Made by [Snir Sharristh](https://snirsh.codes).
