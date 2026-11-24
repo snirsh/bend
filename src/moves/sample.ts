@@ -1,4 +1,4 @@
-import { JOINTS, skeleton, type Grip, type JointName, type Joints, type Pose, type Vec2 } from "./skeleton.ts";
+import { JOINTS, skeleton, type Grip, type JointName, type Joints, type Pose, type Vec2, type Vec3 } from "./skeleton.ts";
 
 /**
  * Periodic monotone cubic interpolation (PCHIP, Fritsch–Butland weights) of one channel.
@@ -44,6 +44,12 @@ export const periodic = (ts: readonly number[], vs: readonly number[], t: number
 /** One keyframe of a move file: the pelvis, body joint angles, and where the bar or handles are. */
 export type Keyframe = { readonly t: number; readonly root: Vec2; readonly joints: Joints; readonly bar: Vec2 };
 
+/** Static equipment. A box is centred at `at` (cm), `size` its full extents, `tilt` degrees about z (+ raises its +x end). */
+export type Prop =
+  | { readonly kind: "floor"; readonly y: number }
+  | { readonly kind: "smith"; readonly x: number }
+  | { readonly kind: "box"; readonly at: Vec3; readonly size: Vec3; readonly tilt?: number };
+
 /** A move file, `src/moves/<id>.json`. */
 export type Move = {
   readonly id: string;
@@ -54,7 +60,11 @@ export type Move = {
   readonly grip: Omit<Grip, "at">;
   /** A planted foot: it keeps the place and the angle keyframe 0 gives it, whatever the leg does. */
   readonly anchor?: "heel";
-  readonly props: readonly ({ readonly kind: "floor"; readonly y: number } | { readonly kind: "smith"; readonly x: number })[];
+  /** Orthographic camera: yaw turns from the pure side view toward the lifter's front (negative: from behind), elevation raises it. Degrees. */
+  readonly camera: { readonly yaw: number; readonly elevation: number };
+  /** What the hands hold at the keyframes' `bar` point: a barbell along z, or two handles. */
+  readonly implement: "barbell" | "handles";
+  readonly props: readonly Prop[];
   readonly keyframes: readonly Keyframe[];
   readonly steps: readonly { readonly keyframe: number; readonly label: string }[];
 };
