@@ -91,6 +91,8 @@ test("finishing early takes a second tap and saves only the logged sets", async 
   await page.getByRole("button", { name: "Tap again to save 2 sets and finish" }).click();
   await expect(page.getByRole("heading", { name: "Session B saved" })).toBeVisible();
   await expect(page.getByText("2 sets · 2 moves")).toBeVisible();
+  await expect(page.locator('[data-timer="cooldown"]')).toHaveAttribute("data-state", "run");
+  await expect(page.locator('[data-timer="rest"]')).toHaveAttribute("data-state", "idle");
   const history = await savedHistory(page);
   expect(history.map((s) => s.letter)).toEqual(["A", "B"]);
   await page.getByRole("button", { name: "Start next session" }).click();

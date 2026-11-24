@@ -23,15 +23,30 @@ const clock = (ms: number) => {
 const kg = (n: number) => String(Math.round(n * 100) / 100);
 
 export const App = () => {
-  const session = useSession();
   const timers = useTimers();
+  const base = useSession();
+  // Every way of finishing stops the rest and starts the cooldown.
+  const session: SessionApi = {
+    ...base,
+    finish: async () => {
+      const saved = await base.finish();
+      if (saved) {
+        timers.act("rest", skip);
+        timers.act("cooldown", start);
+      }
+      return saved;
+    },
+  };
   const { phase } = session;
+
+  // Storage opens in milliseconds. Painting nothing until then keeps the first paint
+  // the real layout, so nothing shifts when the workout arrives.
+  if (phase.kind === "loading") return null;
 
   return (
     <div className="app">
       {phase.kind === "active" && <Active workout={phase.workout} history={phase.history} session={session} timers={timers} />}
       {phase.kind === "finished" && <Finished logged={phase.session} session={session} timers={timers} />}
-      {phase.kind === "loading" && <AppBar meta="loading" session={session} />}
       {phase.kind === "failed" && (
         <>
           <AppBar meta="could not open storage" session={session} />
@@ -101,13 +116,6 @@ const Active = ({
     : blockIds.length > 1
       ? `Antagonist pair · ${resting ? `resting, then ${current.label.toLowerCase()}` : `${current.label.toLowerCase()} next`}`
       : `Straight sets · ${next?.exercise.name ?? ""}`;
-  const finishNow = async () => {
-    if (await session.finish()) {
-      timers.act("rest", skip);
-      timers.act("cooldown", start);
-    }
-  };
-
   return (
     <>
       <AppBar
@@ -140,7 +148,7 @@ const Active = ({
               <h2 id="all-logged">All sets logged</h2>
             </div>
             <p>Save the session, then cool down.</p>
-            <button className="log-btn" type="button" onClick={() => void finishNow()}>
+            <button className="log-btn" type="button" onClick={() => void session.finish()}>
               Finish session
             </button>
           </section>

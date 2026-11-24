@@ -56,7 +56,7 @@ test("video: log one set", async ({ browser }) => {
   const page = await context.newPage();
   await page.goto("/");
   await importBackup(page, mockupHistory());
-  await page.waitForTimeout(1200);
+  await page.waitForTimeout(2500);
   const plus = page.getByRole("button", { name: "Increase weight" });
   for (let i = 0; i < 2; i++) {
     await plus.click();
@@ -71,7 +71,7 @@ test("video: log one set", async ({ browser }) => {
   await page.waitForTimeout(1000);
   await page.getByRole("button", { name: "Log set" }).click();
   await expect(page.locator('[data-timer="rest"]')).toHaveAttribute("data-state", "run");
-  await page.waitForTimeout(4000);
+  await page.waitForTimeout(5000);
   const video = page.video();
   await context.close();
   writeFileSync(join(OUT, "video-raw-path.txt"), (await video?.path()) ?? "");
