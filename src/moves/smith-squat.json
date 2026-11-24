@@ -66,7 +66,7 @@
       ],
       "joints": {
         "trunk": 30.4,
-        "neck": -10.7,
+        "neck": -10.6,
         "hip": 65.4,
         "knee": 47,
         "ankle": 12
@@ -138,7 +138,7 @@
       ],
       "joints": {
         "trunk": 30.4,
-        "neck": -10.7,
+        "neck": -10.6,
         "hip": 65.4,
         "knee": 47,
         "ankle": 12

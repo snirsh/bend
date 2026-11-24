@@ -35,7 +35,7 @@ describe("Smith squat loop, sampled 360 times", () => {
     for (const { body } of loop) {
       expect(Math.abs(body.near.heel[1] - BODY.ankleHeight)).toBeLessThanOrEqual(0.2);
       expect(Math.abs(body.near.heel[0] + BODY.heel)).toBeLessThanOrEqual(0.2);
-      expect(body.angles.foot).toBeCloseTo(90, 2);
+      expect(body.angles.foot).toBeCloseTo(90, 3);
     }
   });
 
