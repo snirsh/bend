@@ -14,8 +14,8 @@ describe("gap since the last session", () => {
   const cases: ReadonlyArray<{ gap: number; mode: Mode; sets: number; weight: number }> = [
     { gap: 0, mode: "normal", sets: 3, weight: 60 },
     { gap: 6, mode: "normal", sets: 3, weight: 60 },
-    { gap: 7, mode: "deload", sets: 2, weight: 54 },
-    { gap: 13, mode: "deload", sets: 2, weight: 54 },
+    { gap: 7, mode: "deload", sets: 2, weight: 52.5 },
+    { gap: 13, mode: "deload", sets: 2, weight: 52.5 },
     { gap: 14, mode: "bridge", sets: 2, weight: 47.5 },
     { gap: 40, mode: "bridge", sets: 2, weight: 47.5 },
   ];
@@ -37,7 +37,7 @@ describe("gap since the last session", () => {
 
 describe("deload: one set fewer (min 1), 10% lighter rounded down to the increment", () => {
   const cases: ReadonlyArray<{ name: string; id: ExerciseId; loggedOn: SessionLetter; history: ReturnType<typeof sets>; sets: number; weight: number | null }> = [
-    { name: "barbell 60 -> 54 exactly", id: ids.bench, loggedOn: "C", history: inRange(60), sets: 2, weight: 54 },
+    { name: "barbell 60 -> 54 rounds down to 52.5", id: ids.bench, loggedOn: "C", history: inRange(60), sets: 2, weight: 52.5 },
     { name: "barbell 62.5 -> 56.25 rounds down to 55", id: ids.bench, loggedOn: "C", history: inRange(62.5), sets: 2, weight: 55 },
     { name: "deloads from the progressed weight: 60 top -> 62.5 -> 55", id: ids.bench, loggedOn: "C", history: same(3, 60, 10, 2), sets: 2, weight: 55 },
     { name: "dumbbell 15 -> 13.5 rounds down to 12", id: ids.raise, loggedOn: "A", history: same(2, 15, 16, 2), sets: 1, weight: 12 },
@@ -106,10 +106,10 @@ describe("bridge window: 14 days from the first session after a >=14 day gap", (
     { name: "first ever session is not a bridge start", sessions: [0], today: 3, mode: "normal" },
     { name: "return on bridge day 3", sessions: [0, 20], today: 23, mode: "bridge" },
     { name: "return on bridge day 10 (gap 10 would be deload) stays bridge", sessions: [0, 20], today: 30, mode: "bridge" },
-    { name: "bridge day 13 is still bridge", sessions: [0, 20, 27], today: 33, mode: "bridge" },
-    { name: "bridge day 14 is normal", sessions: [0, 20, 27], today: 34, mode: "normal" },
+    { name: "bridge day 13 is still bridge", sessions: [0, 20, 28], today: 33, mode: "bridge" },
+    { name: "bridge day 14 is normal", sessions: [0, 20, 28], today: 34, mode: "normal" },
     { name: "a new 14-day gap restarts the bridge", sessions: [0, 20], today: 34, mode: "bridge" },
-    { name: "after the bridge ends, a 7-13 day gap deloads again", sessions: [0, 20, 27], today: 38, mode: "deload" },
+    { name: "after the bridge ends, a 7-13 day gap deloads again", sessions: [0, 20, 28], today: 38, mode: "deload" },
     { name: "a new >=14 gap after a bridge restarts it: day 10 of the new bridge", sessions: [0, 20, 27, 47], today: 57, mode: "bridge" },
     { name: "a 7-13 day gap after a bridge does not restart it", sessions: [0, 20, 27, 40], today: 42, mode: "normal" },
   ];
@@ -125,14 +125,14 @@ describe("bridge and deload sessions do not count toward progression", () => {
   const cases: ReadonlyArray<{ name: string; history: LoggedSession[]; today: number; weight: number; targetReps: number }> = [
     {
       name: "misses during a bridge do not extend a miss streak",
-      history: [benchOn(0, miss(60)), benchOn(20, miss(40)), benchOn(27, miss(40))],
+      history: [benchOn(0, miss(60)), benchOn(20, miss(40)), benchOn(28, miss(40))],
       today: 34,
       weight: 60,
       targetReps: 8,
     },
     {
       name: "top-of-range bridge sessions do not progress; the pre-bridge weight resumes",
-      history: [benchOn(0, inRange(60)), benchOn(20, same(3, 42.5, 10, 2)), benchOn(27, same(3, 42.5, 10, 2))],
+      history: [benchOn(0, inRange(60)), benchOn(20, same(3, 42.5, 10, 2)), benchOn(28, same(3, 42.5, 10, 2))],
       today: 34,
       weight: 60,
       targetReps: 10,
