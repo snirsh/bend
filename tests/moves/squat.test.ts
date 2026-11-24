@@ -31,11 +31,12 @@ describe("Smith squat loop, sampled 360 times", () => {
     }
   });
 
-  test("heels stay down (within 2 mm between keyframes, under 0.1 px in the slot) and feet stay flat", () => {
+  test("heels stay planted on the floor and feet stay flat", () => {
     for (const { body } of loop) {
-      expect(Math.abs(body.near.heel[1] - BODY.ankleHeight)).toBeLessThanOrEqual(0.2);
-      expect(Math.abs(body.near.heel[0] + BODY.heel)).toBeLessThanOrEqual(0.2);
-      expect(body.angles.foot).toBeCloseTo(90, 3);
+      expect(Math.hypot(body.near.heel[0] - first.near.heel[0], body.near.heel[1] - first.near.heel[1])).toBeLessThan(1e-9);
+      expect(Math.abs(body.near.heel[1] - BODY.ankleHeight)).toBeLessThanOrEqual(0.1);
+      expect(body.angles.foot).toBeCloseTo(first.angles.foot, 9);
+      expect(Math.abs(body.angles.foot - 90)).toBeLessThanOrEqual(0.01);
     }
   });
 

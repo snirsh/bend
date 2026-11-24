@@ -1,4 +1,4 @@
-import { JOINTS, type Grip, type JointName, type Joints, type Pose, type Vec2 } from "./skeleton.ts";
+import { JOINTS, skeleton, type Grip, type JointName, type Joints, type Pose, type Vec2 } from "./skeleton.ts";
 
 /**
  * Periodic monotone cubic interpolation (PCHIP, Fritsch–Butland weights) of one channel.
@@ -52,6 +52,8 @@ export type Move = {
   /** Keyframe shown when nothing plays. */
   readonly keyPose: number;
   readonly grip: Omit<Grip, "at">;
+  /** A planted foot: it keeps the place and the angle keyframe 0 gives it, whatever the leg does. */
+  readonly anchor?: "heel";
   readonly props: readonly ({ readonly kind: "floor"; readonly y: number } | { readonly kind: "smith"; readonly x: number })[];
   readonly keyframes: readonly Keyframe[];
   readonly steps: readonly { readonly keyframe: number; readonly label: string }[];
@@ -63,9 +65,19 @@ export const poseAt = (move: Move, t: number): Pose => {
   const ts = keyframes.map((k) => k.t);
   const channel = (pick: (k: Keyframe) => number) => periodic(ts, keyframes.map(pick), t);
   const joints = Object.fromEntries(JOINTS.map((j) => [j, channel((k) => k.joints[j])])) as Record<JointName, number>;
-  return {
+  const pose: Pose = {
     root: [channel((k) => k.root[0]), channel((k) => k.root[1])],
     joints,
     grip: { ...move.grip, at: [channel((k) => k.bar[0]), channel((k) => k.bar[1])] },
   };
+  if (!move.anchor) return pose;
+  // Channels interpolate independently, so a planted foot would slide and tilt a hair
+  // between keyframes. The ankle takes up the tilt and a shift of the root the slide.
+  const first = keyframes[0]!;
+  const planted = skeleton({ ...pose, root: first.root, joints: first.joints });
+  const free = skeleton(pose);
+  const ankle = joints.ankle + free.angles.foot - planted.angles.foot;
+  const flat = skeleton({ ...pose, joints: { ...joints, ankle } });
+  const [want, got] = [planted.near.heel, flat.near.heel];
+  return { ...pose, joints: { ...joints, ankle }, root: [pose.root[0] + want[0] - got[0], pose.root[1] + want[1] - got[1]] };
 };
