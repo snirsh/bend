@@ -97,7 +97,7 @@ const handles = (halfWidth: number): Part[] =>
 const leverArms = ({ length }: Lever, halfWidth: number): Part[] =>
   [1, -1].map((side): Part => {
     const s = side * (halfWidth + 9);
-    return { seg: LEVER_FRAME, n: 4, tone: Tone.Box, rings: [[-5, 0, s, 4.2, 2], [length, 0, s, 3.2, 1.8]] };
+    return { seg: LEVER_FRAME, n: 4, tone: Tone.Box, rings: [[-4, 0, s, 3, 1.7], [length, 0, s, 2.3, 1.5]] };
   });
 /**
  * A box as a 4-sided loft along its x axis: a 4-gon ring is the box inscribed in the
