@@ -6,7 +6,7 @@ import {
   NumberInputIncrement,
 } from "@ui-sdk/react/number-input";
 import { SegmentedControl, SegmentedControlItem } from "@ui-sdk/react/segmented-control";
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { INCREMENTS_KG } from "../../engine/config.ts";
 import type { LoggedSet, Mode } from "../../engine/types.ts";
 import type { UpNext } from "../workout.ts";
@@ -27,6 +27,7 @@ type Props = {
 /** The set being logged: big weight and reps fields, RIR, and the Log set button. Remount per set. */
 export const SetStage = ({ next, label, mode, onLog }: Props) => {
   const [weight, setWeight] = useState<number | null>(next.weight);
+  const typed = useRef<number | null>(null);
   const [reps, setReps] = useState<number | null>(next.reps);
   const [rir, setRir] = useState<string | null>(next.last ? String(Math.min(next.last.rir, 4)) : null);
   const ids = { weight: useId(), reps: useId(), rir: useId(), hint: useId() };
@@ -70,7 +71,21 @@ export const SetStage = ({ next, label, mode, onLog }: Props) => {
           </label>
           <span className="last">{weight === null ? "pick a starting weight" : `kg · ±${formatKg(increment)}`}</span>
         </div>
-        <NumberInput value={weight} onValueChange={setWeight} min={increment} max={500} step={increment} largeStep={increment * 4}>
+        <NumberInput
+          value={weight}
+          onValueChange={(value, details) => {
+            // The steppers move by the equipment increment, but a typed weight is what was lifted:
+            // keep it instead of the grid value UI SDK snaps it to on commit.
+            if (details.reason === "input-change") typed.current = value;
+            else if (details.reason === "input-commit" && typed.current !== null && value !== null) {
+              details.cancel();
+              setWeight(typed.current);
+              typed.current = null;
+              return;
+            } else typed.current = null;
+            setWeight(value);
+          }}
+          min={increment} max={500} step={increment} largeStep={increment * 4}>
           <NumberInputGroup className="big-field" data-primary="">
             <NumberInputDecrement className="step" aria-label="Decrease weight">
               −
@@ -93,7 +108,11 @@ export const SetStage = ({ next, label, mode, onLog }: Props) => {
           <label className="big-lab" htmlFor={ids.reps}>
             Reps
           </label>
-          <span className="last">{last ? `last ${last.reps}` : `target ${next.exercise.targetReps}`}</span>
+          <span className="last">
+            {last
+              ? `last ${last.reps}${last.reps === next.exercise.targetReps ? "" : ` · target ${next.exercise.targetReps}`}`
+              : `target ${next.exercise.targetReps}`}
+          </span>
         </div>
         <NumberInput value={reps} onValueChange={setReps} min={0} max={100} step={1}>
           <NumberInputGroup className="big-field">
@@ -121,7 +140,11 @@ export const SetStage = ({ next, label, mode, onLog }: Props) => {
           ))}
         </SegmentedControl>
 
-        <button className="log-btn" type="submit" disabled={missing !== null} aria-describedby={missing ? ids.hint : undefined}>
+        <button
+          className="log-btn"
+          type="submit"
+          // The second click of a fast double tap lands on the next set's fresh button: ignore it.
+          onClick={(e) => e.detail > 1 && e.preventDefault()} disabled={missing !== null} aria-describedby={missing ? ids.hint : undefined}>
           Log set
         </button>
         {missing && (

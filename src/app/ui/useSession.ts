@@ -27,7 +27,7 @@ const fresh = (history: readonly LoggedSession[]): InProgress =>
  * today shows as finished; otherwise the engine prescribes the next one.
  */
 const settle = (history: readonly LoggedSession[], saved: InProgress | null): Phase => {
-  if (saved && saved.logged.length > 0) return { kind: "active", history, workout: saved };
+  if (saved && saved.logged.length > 0 && saved.prescription.date === today()) return { kind: "active", history, workout: saved };
   const todays = history.filter((s) => s.date === today());
   const latest = todays.at(-1);
   if (latest) return { kind: "finished", history, session: latest };
@@ -37,12 +37,19 @@ const settle = (history: readonly LoggedSession[], saved: InProgress | null): Ph
 export const useSession = () => {
   const [store, setStore] = useState<Store | null>(null);
   const [phase, setPhase] = useState<Phase>({ kind: "loading" });
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const failed = (what: string) => (e: unknown) =>
+    setSaveError(`${what} was not saved: ${e instanceof Error ? e.message : String(e)}. Try again before closing the app.`);
 
   useEffect(() => {
     let live = true;
     (async () => {
       const s = await openStore();
-      const [history, saved] = await Promise.all([s.loadHistory(), s.loadInProgress()]);
+      const [stored, saved] = await Promise.all([s.loadHistory(), s.loadInProgress()]);
+      // A workout left unfinished on an earlier day is that day's session: save it, then start today fresh.
+      const leftover = saved && saved.prescription.date !== today() ? toLoggedSession(saved) : null;
+      if (leftover) await s.finishSession(leftover);
+      const history = leftover ? await s.loadHistory() : stored;
       if (!live) return;
       setStore(s);
       setPhase(settle(history, saved));
@@ -59,7 +66,7 @@ export const useSession = () => {
       if (!store || phase.kind !== "active") return;
       const workout = change(phase.workout);
       setPhase({ ...phase, workout });
-      void store.saveInProgress(workout);
+      store.saveInProgress(workout).then(() => setSaveError(null), failed("Your last change"));
     },
     [store, phase],
   );
@@ -72,10 +79,16 @@ export const useSession = () => {
     if (!store || phase.kind !== "active") return false;
     const session = toLoggedSession(phase.workout);
     if (!session) return false;
-    await store.finishSession(session);
-    const history = await store.loadHistory();
-    setPhase({ kind: "finished", history, session });
-    return true;
+    try {
+      await store.finishSession(session);
+      const history = await store.loadHistory();
+      setSaveError(null);
+      setPhase({ kind: "finished", history, session });
+      return true;
+    } catch (e) {
+      failed("The session")(e);
+      return false;
+    }
   }, [store, phase]);
 
   const discard = useCallback(async () => {
@@ -111,5 +124,5 @@ export const useSession = () => {
     [store, phase],
   );
 
-  return { phase, log, roughNight, finish, discard, startNext, exportFile, importFile };
+  return { phase, saveError, log, roughNight, finish, discard, startNext, exportFile, importFile };
 };

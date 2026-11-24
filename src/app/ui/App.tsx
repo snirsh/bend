@@ -1,7 +1,7 @@
 import { Switch, SwitchThumb } from "@ui-sdk/react/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@ui-sdk/react/tooltip";
-import { useEffect, useId, useRef, useState } from "react";
-import type { ExerciseId, LoggedSession, PrescribedExercise } from "../../engine/types.ts";
+import { useEffect, useId, useRef } from "react";
+import type { ExerciseId, LoggedSession, LoggedSet, PrescribedExercise } from "../../engine/types.ts";
 import { devFixtureCues, type Cue } from "../dev-fixture.ts";
 import { COOLDOWN_MS, REST_MS, pause, resume, skip, start, type TimerView } from "../timer.ts";
 import { upNext, type InProgress, type SetSlot } from "../workout.ts";
@@ -45,7 +45,23 @@ export const App = () => {
 
   return (
     <div className="app">
-      {phase.kind === "active" && <Active workout={phase.workout} history={phase.history} session={session} timers={timers} />}
+      {phase.kind === "active" && (
+        <Active
+          workout={phase.workout}
+          history={phase.history}
+          session={session}
+          timers={timers}
+          onLog={(set) => {
+            session.log(set);
+            timers.act("rest", start);
+          }}
+        />
+      )}
+      {session.saveError && (
+        <p className="notice save-error" data-tone="error" role="alert">
+          {session.saveError}
+        </p>
+      )}
       {phase.kind === "finished" && <Finished logged={phase.session} session={session} timers={timers} />}
       {phase.kind === "failed" && (
         <>
@@ -97,11 +113,13 @@ const Active = ({
   history,
   session,
   timers,
+  onLog,
 }: {
   workout: InProgress;
   history: readonly LoggedSession[];
   session: SessionApi;
   timers: TimersApi;
+  onLog: (set: LoggedSet) => void;
 }) => {
   const next = upNext(workout, history);
   const slot = next?.slot;
@@ -135,10 +153,7 @@ const Active = ({
               next={next}
               label={current.label}
               mode={mode}
-              onLog={(set) => {
-                session.log(set);
-                timers.act("rest", start);
-              }}
+              onLog={onLog}
             />
           </>
         ) : (

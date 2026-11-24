@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { importBackup, logPrefilled, logSetButton, mockupHistory, repsInput, savedHistory, savedWorkout, restTime, weightInput } from "./helpers.ts";
+import { importBackup, localDate, logPrefilled, logSetButton, mockupHistory, repsInput, savedHistory, savedWorkout, restTime, weightInput } from "./helpers.ts";
 
 test("a never-logged exercise asks for a starting weight with the field focused", async ({ page }) => {
   await page.goto("/");
@@ -97,4 +97,53 @@ test("finishing early takes a second tap and saves only the logged sets", async 
   expect(history.map((s) => s.letter)).toEqual(["A", "B"]);
   await page.getByRole("button", { name: "Start next session" }).click();
   await expect(page.getByText(/^session C/)).toBeVisible();
+});
+
+test("a typed weight is logged as typed, not snapped to the stepper grid", async ({ page }) => {
+  await page.goto("/");
+  await importBackup(page, mockupHistory());
+  await weightInput(page).fill("61");
+  await repsInput(page).click();
+  await expect(weightInput(page)).toHaveValue("61");
+  await page.getByRole("button", { name: "Increase weight" }).click();
+  await expect(weightInput(page)).toHaveValue("62.5");
+  await weightInput(page).fill("61.25");
+  await logSetButton(page).click();
+  await expect(page.locator('.pill[data-state="done"]').first()).toContainText("Sq 1 · 61.25×8");
+});
+
+test("a fast double tap on Log set logs one set", async ({ page }) => {
+  await page.goto("/");
+  await importBackup(page, mockupHistory());
+  await logSetButton(page).dblclick();
+  await expect(page.locator('.pill[data-state="done"]')).toHaveCount(1);
+  await expect.poll(async () => (await savedWorkout(page))?.logged.length).toBe(1);
+});
+
+test("a workout left unfinished on an earlier day is saved under that day and today starts fresh", async ({ page }) => {
+  await page.clock.install();
+  await page.goto("/");
+  await importBackup(page, mockupHistory());
+  await logPrefilled(page);
+  await logPrefilled(page);
+  await expect.poll(async () => (await savedWorkout(page))?.logged.length).toBe(2);
+  const then = await page.evaluate(() => Date.now());
+  await page.clock.setSystemTime(then + 3 * 86_400_000);
+  await page.reload();
+  await expect(page.getByText(/^session C/)).toBeVisible();
+  const history = await savedHistory(page);
+  expect(history.map((s) => [s.letter, s.exercises.reduce((n, e) => n + e.sets.length, 0)])).toEqual([["A", 9], ["B", 2]]);
+  expect(history[1]!.date).toBe(localDate(0, new Date(then)));
+});
+
+test("a failed save is reported, not hidden", async ({ page }) => {
+  await page.goto("/");
+  await importBackup(page, mockupHistory());
+  await page.evaluate(() => {
+    IDBDatabase.prototype.transaction = () => {
+      throw new DOMException("Connection to Indexed Database server lost", "UnknownError");
+    };
+  });
+  await logPrefilled(page);
+  await expect(page.getByRole("alert")).toContainText("not saved");
 });

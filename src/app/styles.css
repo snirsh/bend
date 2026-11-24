@@ -444,3 +444,4 @@ button:disabled { cursor: not-allowed; }
 .saved li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
 .saved li > span:first-child { min-width: 0; }
 .saved .last { white-space: normal; text-align: right; }
+.save-error { margin: 8px 20px 0; }
