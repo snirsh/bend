@@ -83,9 +83,12 @@ const PLATES: readonly Part[] = [1, -1].flatMap((side): Part[] => [
   { seg: "bar", n: 10, tone: Tone.Bar, rings: [[side * 64, 0, 0, PLATE, PLATE], [side * 67.5, 0, 0, PLATE, PLATE]] },
   { seg: "bar", n: 6, tone: Tone.Bar, rings: [[side * 67.5, 0, 0, 3.4, 3.4], [side * 69.5, 0, 0, 3.4, 3.4]] },
 ]);
-/** Two handles, one through each fist, centred on the grip. */
+/** Two handles, one through each fist, each ending outside the hand in the block of the lever that carries it. */
 const handles = (halfWidth: number): Part[] =>
-  [1, -1].map((side) => ({ seg: "bar", n: 6, tone: Tone.Bar, rings: [[side * halfWidth - 6.5, 0, 0, 1.7, 1.7], [side * halfWidth + 6.5, 0, 0, 1.7, 1.7]] }));
+  [1, -1].flatMap((side): Part[] => [
+    { seg: "bar", n: 6, tone: Tone.Bar, rings: [[side * (halfWidth - 5.5), 0, 0, 1.7, 1.7], [side * (halfWidth + 7), 0, 0, 1.7, 1.7]] },
+    { seg: "bar", n: 4, tone: Tone.Bar, rings: [[side * (halfWidth + 7), 0, 0, 4, 4], [side * (halfWidth + 11), 0, 0, 4, 4]] },
+  ]);
 /**
  * A box as a 4-sided loft along its x axis: a 4-gon ring is the box inscribed in the
  * ellipse, so the half extents grow by √2. Cut about every 20 cm, so a long pad sorts
