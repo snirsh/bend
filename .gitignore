@@ -4,3 +4,8 @@ node_modules/
 *.pem
 dist/
 coverage/
+
+# personal training data never lives in the repo
+Plan.md
+*.local.*
+data/
