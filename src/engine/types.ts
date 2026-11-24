@@ -49,12 +49,17 @@ export type Plan = {
   readonly bridgeSwaps: readonly BridgeSwap[];
 };
 
+/**
+ * `weight` is external load in kg and must be > 0; bodyweight moves are out of scope.
+ * `reps` is an integer >= 0. `rir` is an integer 0-10. `nextSession` throws a RangeError otherwise.
+ */
 export type LoggedSet = {
   readonly weight: number;
   readonly reps: number;
   readonly rir: number;
 };
 
+/** Must hold at least one set. */
 export type LoggedExercise = {
   readonly exerciseId: ExerciseId;
   readonly sets: readonly LoggedSet[];
@@ -65,6 +70,7 @@ export type SessionTag = "rough-night";
 /**
  * A completed session. Its mode (normal/deload/bridge) is not stored: the engine
  * derives it from the session dates, so a stored mode can never disagree with the rules.
+ * History is ordered by date. Sessions on the same date keep their order in the input array.
  */
 export type LoggedSession = {
   readonly date: CalendarDate;

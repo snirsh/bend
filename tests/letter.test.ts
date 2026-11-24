@@ -12,6 +12,8 @@ describe("session letter", () => {
     { name: "C wraps to A", history: [session(day(0), "C")], today: 2, letter: "A" },
     { name: "follows the last session, not the count", history: [session(day(0), "A"), session(day(1), "B")], today: 2, letter: "C" },
     { name: "same-day sessions never double up", history: [session(day(0), "A"), session(day(0), "B")], today: 0, letter: "C" },
+    { name: "same-day sessions keep input order: B then A -> B", history: [session(day(0), "B"), session(day(0), "A")], today: 0, letter: "B" },
+    { name: "same-day tie-break survives other dates around it", history: [session(day(1), "C"), session(day(0), "B"), session(day(1), "A")], today: 2, letter: "B" },
     { name: "history order does not matter, dates do", history: [session(day(1), "B"), session(day(0), "A")], today: 2, letter: "C" },
     { name: "rotation continues across a long gap", history: [session(day(0), "A")], today: 30, letter: "B" },
     { name: "rotation continues across a rough night", history: [session(day(0), "A", [], ["rough-night"])], today: 2, letter: "B" },

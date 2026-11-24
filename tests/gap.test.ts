@@ -42,6 +42,7 @@ describe("deload: one set fewer (min 1), 10% lighter rounded down to the increme
     { name: "deloads from the progressed weight: 60 top -> 62.5 -> 55", id: ids.bench, loggedOn: "C", history: same(3, 60, 10, 2), sets: 2, weight: 55 },
     { name: "dumbbell 15 -> 13.5 rounds down to 12", id: ids.raise, loggedOn: "A", history: same(2, 15, 16, 2), sets: 1, weight: 12 },
     { name: "1-set exercise stays at 1 set; machine 20 -> 18 rounds to 17.5", id: ids.calf, loggedOn: "A", history: same(1, 20, 12, 2), sets: 1, weight: 17.5 },
+    { name: "barbell 2.5 -> 2.25 holds at one increment, never 0", id: ids.bench, loggedOn: "C", history: inRange(2.5), sets: 2, weight: 2.5 },
     { name: "never logged stays null", id: ids.squat, loggedOn: "A", history: [], sets: 2, weight: null },
   ];
 

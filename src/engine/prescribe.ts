@@ -1,6 +1,6 @@
 import { INCREMENTS_KG, MODE } from "./config.ts";
 import { classifyModes } from "./mode.ts";
-import { progression, type CountedSession, type Progression } from "./progression.ts";
+import { atLeastOneStep, progression, type CountedSession, type Progression } from "./progression.ts";
 import type {
   CalendarDate,
   Exercise,
@@ -12,6 +12,7 @@ import type {
   Prescription,
   SessionLetter,
 } from "./types.ts";
+import { validateHistory } from "./validate.ts";
 
 const NEXT_LETTER: Readonly<Record<SessionLetter, SessionLetter>> = { A: "B", B: "C", C: "A" };
 const FLOAT_SLACK = 1e-9;
@@ -31,7 +32,7 @@ const slots = (day: PlanDay, mode: Mode, plan: Plan): Slot[] => {
 };
 
 const scaleDown = (kg: number | null, factor: number, increment: number): number | null =>
-  kg === null ? null : Math.floor((kg * factor) / increment + FLOAT_SLACK) * increment;
+  kg === null ? null : atLeastOneStep(Math.floor((kg * factor) / increment + FLOAT_SLACK) * increment, kg, increment);
 
 const dose = (exercise: Exercise, mode: Mode, base: Progression): Dose => {
   const increment = INCREMENTS_KG[exercise.equipment];
@@ -60,6 +61,8 @@ const dose = (exercise: Exercise, mode: Mode, base: Progression): Dose => {
 };
 
 export const nextSession = (history: readonly LoggedSession[], plan: Plan, today: CalendarDate): Prescription => {
+  validateHistory(history);
+  // Array.prototype.sort is stable, so same-date sessions keep their input order.
   const sessions = [...history].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
   const modes = classifyModes(sessions.map((s) => s.date), today);
   const counted: CountedSession[] = sessions.map((session, i) => ({
