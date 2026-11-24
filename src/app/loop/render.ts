@@ -21,8 +21,11 @@ export const VIEW = {
   gamma: 1.5,
   /** How far the --muted end of the body ramp mixes on toward the background. */
   spread: 0.35,
-  /** The same on a light ground, where the body is the dark end: a wider ramp keeps its form. */
-  spreadLight: 0.6,
+  /**
+   * On a light ground the body ramp runs from --muted toward --surface by these amounts:
+   * shade is a mid warm grey (L* ~49 at the darkest face), lit faces stay under the ground.
+   */
+  lightRamp: [0, 0.62] as const,
   /** How far far-side limbs and the floor mix toward the background. */
   far: 0.3,
   pad: 0.03,
@@ -107,8 +110,10 @@ const palette = (el: Element) => {
   const style = getComputedStyle(el);
   const v = (name: string) => parse(style.getPropertyValue(name));
   const [fg, muted, line, surface] = [v("--fg"), v("--muted"), v("--line"), v("--surface")];
-  const soft = mix(muted, surface, luma(fg) > luma(muted) ? VIEW.spread : VIEW.spreadLight);
-  const [lo, hi] = luma(fg) > luma(muted) ? [soft, fg] : [fg, soft];
+  const [lo, hi] =
+    luma(fg) > luma(muted)
+      ? [mix(muted, surface, VIEW.spread), fg]
+      : [mix(muted, surface, VIEW.lightRamp[0]), mix(muted, surface, VIEW.lightRamp[1])];
   const ramp = (a: Rgb, b: Rgb, toward = 0) =>
     Array.from({ length: VIEW.levels + 1 }, (_, i) => css(mix(mix(a, b, i / VIEW.levels), surface, toward)));
   const ramps: string[][] = [];
