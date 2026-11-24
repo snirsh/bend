@@ -1,9 +1,9 @@
 import { Switch, SwitchThumb } from "@ui-sdk/react/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@ui-sdk/react/tooltip";
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { ExerciseId, LoggedSession, LoggedSet, PrescribedExercise } from "../../engine/types.ts";
-import type { Move } from "../../moves/sample.ts";
 import { devFixtureCues, type Cue } from "../dev-fixture.ts";
+import type { Loop, LoopView } from "../loop/play.ts";
 import { COOLDOWN_MS, REST_MS, pause, resume, skip, start, type TimerView } from "../timer.ts";
 import { upNext, type InProgress, type SetSlot } from "../workout.ts";
 import { Menu } from "./Menu.tsx";
@@ -177,53 +177,103 @@ const Active = ({
   );
 };
 
-/** Move files by id. Only the loaders are in the critical JS; each file is its own lazy chunk. */
-const moveFiles = import.meta.glob<{ default: Move }>("../../moves/*.json");
+/** Move files by id, raw JSON until play.ts parses them. Only the loaders are in the critical JS; each file is its own lazy chunk. */
+const moveFiles = import.meta.glob<{ default: unknown }>("../../moves/*.json");
 
-/** The slot plays the move's loop once the screen is idle. Until then, and under reduced motion, it shows the poster. */
+/**
+ * The slot shows the poster, then plays the move's loop once the screen is idle. Under reduced
+ * motion, or once paused, it shows the key pose and steps through the move's labelled poses.
+ */
 const LoopSlot = ({ id, label }: { id: ExerciseId; label: string }) => {
-  const ref = useRef<HTMLDivElement>(null);
+  const stage = useRef<HTMLDivElement>(null);
+  const loop = useRef<Loop>(undefined);
+  const [view, setView] = useState<LoopView | null>(null);
   const load = moveFiles[`../../moves/${id}.json`];
   useEffect(() => {
-    const slot = ref.current;
-    if (!slot || !load) return;
-    let stop: (() => void) | undefined;
+    const el = stage.current;
+    if (!el || !load) return;
     let cancelled = false;
     const start = () =>
       void Promise.all([import("../loop/play.ts"), load()])
-        .then(([loop, file]) => {
-          if (!cancelled) stop = loop.play(slot, file.default);
+        .then(([mod, file]) => {
+          if (!cancelled) loop.current = mod.play(el, file.default, id, setView);
         })
-        // Offline with a stale cache or a failed chunk: the poster stays, which is a fine still.
-        .catch(() => undefined);
+        // An invalid move file, or offline with a stale cache: the poster stays, which is a fine still.
+        .catch((error: unknown) => console.warn(`bend: no movement loop for ${id}, showing its poster.`, error));
     const idle = "requestIdleCallback" in window;
     const handle = idle ? requestIdleCallback(start, { timeout: 1500 }) : window.setTimeout(start, 300);
     return () => {
       cancelled = true;
       (idle ? cancelIdleCallback : clearTimeout)(handle);
-      stop?.();
+      loop.current?.stop();
     };
-  }, [load]);
+  }, [id, load]);
+  const name = label.toLowerCase();
   return (
-    <div className="loop" ref={ref} role="img" aria-label={`${label} movement loop`}>
-      {load ? (
-        <picture>
-          <source srcSet={`/moves/${id}-light.webp`} media="(prefers-color-scheme: light)" />
-          <img src={`/moves/${id}-dark.webp`} alt="" width={86} height={86} decoding="async" />
-        </picture>
-      ) : (
-        <svg viewBox="0 0 56 56" fill="none" aria-hidden="true">
-          <circle cx="34" cy="10" r="4.2" stroke="currentColor" strokeWidth="1.4" />
-          <path d="M32 14.6 L22 26 L16 24" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M22 26 L20 36 L12 50" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M20 36 L30 50" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-          <path d="M19 28 L8 22 L6 16" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M8 22 L18 20" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-        </svg>
+    // role="img" cannot hold controls, so the slot becomes a group once the loop has them.
+    <div className="loop" role={view ? "group" : "img"} aria-label={`${label} movement loop`}>
+      <div className="loop-stage" ref={stage}>
+        {load ? (
+          <picture>
+            <source srcSet={`/moves/${id}-light.webp`} media="(prefers-color-scheme: light)" />
+            <img src={`/moves/${id}-dark.webp`} alt="" width={86} height={86} decoding="async" />
+          </picture>
+        ) : (
+          <svg viewBox="0 0 56 56" fill="none" aria-hidden="true">
+            <circle cx="34" cy="10" r="4.2" stroke="currentColor" strokeWidth="1.4" />
+            <path d="M32 14.6 L22 26 L16 24" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M22 26 L20 36 L12 50" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M20 36 L30 50" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+            <path d="M19 28 L8 22 L6 16" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M8 22 L18 20" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          </svg>
+        )}
+      </div>
+      {view && (
+        <>
+          <p className="loop-status" role="status">
+            {view.kind === "still" && (
+              <span>
+                <span>
+                  {view.step + 1} of {view.steps}
+                </span>
+                <span className="sr"> · </span>
+                <span>{view.label}</span>
+              </span>
+            )}
+          </p>
+          <button
+            className="loop-btn loop-toggle"
+            type="button"
+            aria-label={`${view.kind === "playing" ? "Pause" : "Play"} ${name} loop`}
+            onClick={() => (view.kind === "playing" ? loop.current?.pause() : loop.current?.resume())}
+          >
+            {view.kind === "playing" ? <Glyph d="M3.5 2v6M6.5 2v6" /> : <Glyph d="M3.5 2.2v5.6L8 5z" solid />}
+          </button>
+          {view.kind === "still" && (
+            <>
+              <button className="loop-btn loop-prev" type="button" aria-label="Previous step" onClick={() => loop.current?.step(-1)}>
+                <Glyph d="M6.2 2 3.2 5l3 3" />
+              </button>
+              <button className="loop-btn loop-next" type="button" aria-label="Next step" onClick={() => loop.current?.step(1)}>
+                <Glyph d="m3.8 2 3 3-3 3" />
+              </button>
+            </>
+          )}
+        </>
       )}
     </div>
   );
 };
+
+/** A loop control's 22 px disc with a 10 px stroke icon; the button around it is the 44 px hit area. */
+const Glyph = ({ d, solid = false }: { d: string; solid?: boolean }) => (
+  <span className="loop-glyph" aria-hidden="true">
+    <svg viewBox="0 0 10 10" fill={solid ? "currentColor" : "none"}>
+      <path d={d} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  </span>
+);
 
 const LoopAndCue = ({ exercise, cue }: { exercise: PrescribedExercise; cue: Cue }) => (
   <div className="loop-row">
