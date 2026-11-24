@@ -19,6 +19,9 @@ export type Frame = ReturnType<typeof sampleLoop>[number];
 export const GLUTES = { along: 4, front: -11.19 };
 export const CHEST = { along: 40, front: 14.44 };
 export const BACK = -9.68;
+export const BLADES = { along: 55.5, front: BACK };
+/** The back of the skull in the head's frame: `along` the head axis from the base of the skull, `front` of it. */
+export const SKULL = { along: 11.96, front: -6.53 };
 
 const torsoAxes = (body: Skeleton) => {
   const t = Math.atan2(body.chest[0] - body.pelvis[0], body.chest[1] - body.pelvis[1]);
@@ -28,6 +31,12 @@ const torsoAxes = (body: Skeleton) => {
 export const onTorso = (body: Skeleton, { along, front }: { along: number; front: number }): Vec3 => {
   const [ax, ay, fx, fy] = torsoAxes(body);
   return [body.pelvis[0] + along * ax + front * fx, body.pelvis[1] + along * ay + front * fy, 0];
+};
+/** World point (z = 0) of a point given in the head's frame. */
+export const onHead = (body: Skeleton, { along, front }: { along: number; front: number }): Vec3 => {
+  const t = Math.atan2(body.head[0] - body.neck[0], body.head[1] - body.neck[1]);
+  const [ax, ay, fx, fy] = [Math.sin(t), Math.cos(t), Math.cos(t), -Math.sin(t)];
+  return [body.neck[0] + along * ax + front * fx, body.neck[1] + along * ay + front * fy, 0];
 };
 /** A world point in the torso's frame. */
 export const inTorso = (body: Skeleton, p: Vec2 | Vec3) => {

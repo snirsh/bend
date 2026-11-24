@@ -23,8 +23,11 @@ export type Seg = (typeof SEG)[number];
 export const enum Tone { Body, Far, Bar, Rail, Box }
 
 type Ring = readonly [t: number, f: number, s: number, hf: number, hs: number];
-/** `seg` names a fixed frame slot, or is a box's own slot number. `frame: false` keeps a part out of the framing bounds. */
-type Part = { seg: Seg | number; n: number; rings: readonly Ring[]; tone?: Tone; bias?: number; frame?: false };
+/**
+ * `seg` names a fixed frame slot, or is a box's own slot number. `frame: false` keeps a part out of the
+ * framing bounds; `frame: true` keeps it in even when the view frames the lifter alone.
+ */
+type Part = { seg: Seg | number; n: number; rings: readonly Ring[]; tone?: Tone; bias?: number; frame?: boolean };
 
 const BODY_PARTS: readonly Part[] = [
   // Pelvis block: glutes push back, a narrow crotch, the waist on top.
@@ -77,11 +80,11 @@ const SMITH: readonly Part[] = [
   // lifter: the near rail would otherwise slice through the hips at the bottom of the squat.
   ...[RAIL_Z, -RAIL_Z].map((z): Part => ({ seg: "rail", n: 6, tone: Tone.Rail, frame: false, bias: -500, rings: [[0, 0, z, 0.8, 0.8], [400, 0, z, 0.8, 0.8]] })),
 ];
-/** Radius of a 20 kg plate, cm. */
-const PLATE = 22.5;
-/** A free bar: one plate and a collar on each sleeve. */
+/** Radius of a 10 kg iron plate, cm: small enough to stay off the lifter and in the frame. */
+const PLATE = 16;
+/** A free bar: one plate and a collar on each sleeve. The plates count toward the framing, so they never crop. */
 const PLATES: readonly Part[] = [1, -1].flatMap((side): Part[] => [
-  { seg: "bar", n: 10, tone: Tone.Bar, rings: [[side * 64, 0, 0, PLATE, PLATE], [side * 67.5, 0, 0, PLATE, PLATE]] },
+  { seg: "bar", n: 10, tone: Tone.Bar, frame: true, rings: [[side * 64, 0, 0, PLATE, PLATE], [side * 67.5, 0, 0, PLATE, PLATE]] },
   { seg: "bar", n: 6, tone: Tone.Bar, rings: [[side * 67.5, 0, 0, 3.4, 3.4], [side * 69.5, 0, 0, 3.4, 3.4]] },
 ]);
 /** Two handles, one through each fist, each ending outside the hand in the block of the lever that carries it. */
@@ -159,7 +162,7 @@ export const buildMesh = (move: Equipment): Mesh => {
         ring.push(vf.length);
         lv.push(t, f + hf * Math.cos(th), s + hs * Math.sin(th));
         vf.push(frame);
-        vb.push(p.frame === false ? 0 : p.tone === Tone.Bar ? 2 : 1);
+        vb.push(p.frame === false ? 0 : p.frame || p.tone !== Tone.Bar ? 1 : 2);
       }
       rings.push(ring);
     }

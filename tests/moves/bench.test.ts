@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import benchFile from "../../src/moves/bench-press.json";
 import type { Move } from "../../src/moves/sample.ts";
 import { BODY, ELBOW_RANGE, JOINTS, RANGES } from "../../src/moves/skeleton.ts";
-import { CHEST, GLUTES, dist, fromVertical, handsOff, most, nearestBox, onTorso, sampleLoop, sdBox } from "./loop.ts";
+import { BLADES, CHEST, GLUTES, SKULL, dist, fromVertical, handsOff, most, nearestBox, onHead, onTorso, sampleLoop, sdBox } from "./loop.ts";
 
 const move = benchFile as unknown as Move;
 const loop = sampleLoop(move);
@@ -12,9 +12,9 @@ const bottom = most(loop, (f) => -f.pose.grip.at[1]);
 const floor = move.props.find((p) => p.kind === "floor");
 
 describe("Bench press loop, sampled 360 times", () => {
-  test("lies supine: trunk at -90, head toward -x, chest up", () => {
+  test("lies supine and flat: the trunk within 5 degrees of horizontal, head toward -x, chest up", () => {
     for (const { pose, body } of loop) {
-      expect(pose.joints.trunk).toBeCloseTo(-90, 9);
+      expect(Math.abs(pose.joints.trunk + 90)).toBeLessThanOrEqual(5);
       expect(body.head[0]).toBeLessThan(body.chest[0]);
       expect(body.chest[0]).toBeLessThan(body.pelvis[0]);
       expect(onTorso(body, CHEST)[1]).toBeGreaterThan(body.pelvis[1] + 10);
@@ -29,6 +29,17 @@ describe("Bench press loop, sampled 360 times", () => {
       expect(dist(body.pelvis, first.pelvis)).toBeLessThan(1e-9);
       expect(Math.abs(sdBox(onTorso(body, GLUTES), pad))).toBeLessThanOrEqual(0.5);
     }
+  });
+
+  // A padded bench gives a little: each contact may sink up to 2.5 cm into the cushion, or float 0.5 cm over it.
+  test("the bench is flat and the whole torso and the head rest on it: glutes, shoulder blades and the back of the skull", () => {
+    const pad = nearestBox(move, onTorso(first, GLUTES));
+    expect(pad.tilt ?? 0).toBe(0);
+    for (const { body } of loop)
+      for (const point of [onTorso(body, GLUTES), onTorso(body, BLADES), onHead(body, SKULL)]) {
+        expect(sdBox(point, pad)).toBeGreaterThanOrEqual(-2.5);
+        expect(sdBox(point, pad)).toBeLessThanOrEqual(0.5);
+      }
   });
 
   // The rig has no shoulder-girdle joint, so this checks the shoulder points stay where they start
@@ -74,10 +85,21 @@ describe("Bench press loop, sampled 360 times", () => {
     }
   });
 
-  test("neutral neck: the head stays within the squat's neutral band", () => {
+  test("neutral neck: the head in line with the trunk, within 5 degrees", () => {
+    for (const { pose } of loop) expect(Math.abs(pose.joints.neck)).toBeLessThanOrEqual(5);
+  });
+
+  test("knees bent about 90 degrees", () => {
     for (const { pose } of loop) {
-      expect(pose.joints.neck).toBeGreaterThanOrEqual(-15);
-      expect(pose.joints.neck).toBeLessThanOrEqual(5);
+      expect(pose.joints.knee).toBeGreaterThanOrEqual(85);
+      expect(pose.joints.knee).toBeLessThanOrEqual(95);
+    }
+  });
+
+  test("feet slightly behind the knees: the ankle 2 to 12 cm toward the head from the knee", () => {
+    for (const { body } of loop) {
+      expect(body.near.knee[0] - body.near.ankle[0]).toBeGreaterThanOrEqual(2);
+      expect(body.near.knee[0] - body.near.ankle[0]).toBeLessThanOrEqual(12);
     }
   });
 
