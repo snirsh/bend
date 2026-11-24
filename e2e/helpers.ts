@@ -47,11 +47,15 @@ export const logSetButton = (page: Page) => page.getByRole("button", { name: "Lo
 
 /** Logs the current set with whatever is prefilled, typing a weight when there is none. */
 export const logPrefilled = async (page: Page, fallbackWeight = 40) => {
+  const done = page.locator('.pill[data-state="done"]');
+  const before = await done.count();
   const weight = weightInput(page);
   if ((await weight.inputValue()) === "") await weight.fill(String(fallbackWeight));
   const rir = page.getByRole("radio", { checked: true });
   if ((await rir.count()) === 0) await page.getByRole("radio", { name: "2", exact: true }).click();
   await logSetButton(page).click();
+  // A set counts as logged once its write commits and the ticker shows it done.
+  await expect(done).toHaveCount(before + 1);
 };
 
 export const restTime = (page: Page) => page.locator('[data-timer="rest"] .time');

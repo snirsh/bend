@@ -52,8 +52,7 @@ export const App = () => {
           session={session}
           timers={timers}
           onLog={(set) => {
-            session.log(set);
-            timers.act("rest", start);
+            void session.log(set).then((saved) => saved && timers.act("rest", start));
           }}
         />
       )}
@@ -154,6 +153,7 @@ const Active = ({
               label={current.label}
               mode={mode}
               onLog={onLog}
+              saving={session.saving}
             />
           </>
         ) : (

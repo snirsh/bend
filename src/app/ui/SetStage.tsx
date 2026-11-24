@@ -22,10 +22,12 @@ type Props = {
   readonly label: string;
   readonly mode: Mode;
   readonly onLog: (set: LoggedSet) => void;
+  /** True while the last change is being written; the set is not logged until that commits. */
+  readonly saving: boolean;
 };
 
 /** The set being logged: big weight and reps fields, RIR, and the Log set button. Remount per set. */
-export const SetStage = ({ next, label, mode, onLog }: Props) => {
+export const SetStage = ({ next, label, mode, onLog, saving }: Props) => {
   const [weight, setWeight] = useState<number | null>(next.weight);
   const typed = useRef<number | null>(null);
   const [reps, setReps] = useState<number | null>(next.reps);
@@ -144,8 +146,8 @@ export const SetStage = ({ next, label, mode, onLog }: Props) => {
           className="log-btn"
           type="submit"
           // The second click of a fast double tap lands on the next set's fresh button: ignore it.
-          onClick={(e) => e.detail > 1 && e.preventDefault()} disabled={missing !== null} aria-describedby={missing ? ids.hint : undefined}>
-          Log set
+          onClick={(e) => e.detail > 1 && e.preventDefault()} disabled={missing !== null || saving} aria-describedby={missing ? ids.hint : undefined}>
+          {saving ? "Saving…" : "Log set"}
         </button>
         {missing && (
           <p className="log-hint" id={ids.hint}>

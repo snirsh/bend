@@ -38,7 +38,8 @@ const transact = async <T>(
   mode: IDBTransactionMode,
   work: (tx: IDBTransaction) => Promise<T> | T,
 ): Promise<T> => {
-  const tx = db.transaction(stores, mode);
+  // "strict": a write counts as committed only once it is on disk, so a killed app keeps it.
+  const tx = db.transaction(stores, mode, { durability: mode === "readwrite" ? "strict" : "default" });
   const finished = committed(tx);
   try {
     const result = await work(tx);

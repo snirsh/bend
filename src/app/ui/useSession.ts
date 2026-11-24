@@ -61,14 +61,31 @@ export const useSession = () => {
     };
   }, []);
 
+  const [saving, setSaving] = useState(false);
+
+  /**
+   * Saves the changed workout and shows it only once the IndexedDB transaction has committed.
+   * Until then the screen keeps the last saved state, so a reload or a killed app never loses
+   * something the screen already showed as done. Resolves true when saved.
+   */
   const update = useCallback(
-    (change: (w: InProgress) => InProgress) => {
-      if (!store || phase.kind !== "active") return;
+    async (change: (w: InProgress) => InProgress): Promise<boolean> => {
+      if (!store || phase.kind !== "active" || saving) return false;
       const workout = change(phase.workout);
-      setPhase({ ...phase, workout });
-      store.saveInProgress(workout).then(() => setSaveError(null), failed("Your last change"));
+      setSaving(true);
+      try {
+        await store.saveInProgress(workout);
+        setSaveError(null);
+        setPhase({ ...phase, workout });
+        return true;
+      } catch (e) {
+        failed("Your last change")(e);
+        return false;
+      } finally {
+        setSaving(false);
+      }
     },
-    [store, phase],
+    [store, phase, saving],
   );
 
   const log = useCallback((set: LoggedSet) => update((w) => logSet(w, set)), [update]);
@@ -124,5 +141,5 @@ export const useSession = () => {
     [store, phase],
   );
 
-  return { phase, saveError, log, roughNight, finish, discard, startNext, exportFile, importFile };
+  return { phase, saving, saveError, log, roughNight, finish, discard, startNext, exportFile, importFile };
 };

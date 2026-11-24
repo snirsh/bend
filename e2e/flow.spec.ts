@@ -144,8 +144,11 @@ test("a failed save is reported, not hidden", async ({ page }) => {
       throw new DOMException("Connection to Indexed Database server lost", "UnknownError");
     };
   });
-  await logPrefilled(page);
+  await logSetButton(page).click();
   await expect(page.getByRole("alert")).toContainText("not saved");
+  // Nothing that failed to save is shown as logged.
+  await expect(page.locator('.pill[data-state="done"]')).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Squat · set 1 of 3" })).toBeVisible();
 });
 
 test("a set is shown as logged only once its write commits; a reload while pending keeps the last saved state", async ({ page }) => {
