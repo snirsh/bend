@@ -56,6 +56,24 @@ export const sdBox = (p: Vec3, b: Box) => {
   const q = local.map((v, i) => Math.abs(v) - b.size[i]! / 2);
   return Math.hypot(...q.map((v) => Math.max(v, 0))) + Math.min(Math.max(...q), 0);
 };
+/** Points through a box, `n` per axis, corners and faces included. */
+const pointsIn = (b: Box, n = 7): Vec3[] => {
+  const tilt = ((b.tilt ?? 0) * Math.PI) / 180;
+  const at = (i: number, k: number) => b.size[k]! * (i / (n - 1) - 0.5);
+  const out: Vec3[] = [];
+  for (let i = 0; i < n; i++)
+    for (let j = 0; j < n; j++)
+      for (let k = 0; k < n; k++) {
+        const [x, y, z] = [at(i, 0), at(j, 1), at(k, 2)];
+        out.push([b.at[0] + x * Math.cos(tilt) - y * Math.sin(tilt), b.at[1] + x * Math.sin(tilt) + y * Math.cos(tilt), b.at[2] + z]);
+      }
+  return out;
+};
+/** Two boxes touch or overlap: some point of one lies within half a centimetre of the other. */
+export const touch = (a: Box, b: Box) => pointsIn(a).some((p) => sdBox(p, b) <= 0.5) || pointsIn(b).some((p) => sdBox(p, a) <= 0.5);
+/** A box stands on the floor: its lowest point is within half a centimetre of it. */
+export const onFloor = (b: Box, y: number) => Math.abs(Math.min(...pointsIn(b, 2).map((p) => p[1])) - y) <= 0.5;
+
 /** The box whose surface is nearest `p`. */
 export const nearestBox = (move: Move, p: Vec3) =>
   boxes(move).reduce((a, b) => (Math.abs(sdBox(p, b)) < Math.abs(sdBox(p, a)) ? b : a));

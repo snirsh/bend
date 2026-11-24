@@ -90,14 +90,14 @@ const PLATES: readonly Part[] = [1, -1].flatMap((side): Part[] => [
 /** Two handles, one through each fist, each ending outside the hand in the block of the lever that carries it. */
 const handles = (halfWidth: number): Part[] =>
   [1, -1].flatMap((side): Part[] => [
-    { seg: "bar", n: 6, tone: Tone.Bar, rings: [[side * (halfWidth - 5.5), 0, 0, 1.7, 1.7], [side * (halfWidth + 7), 0, 0, 1.7, 1.7]] },
-    { seg: "bar", n: 4, tone: Tone.Bar, rings: [[side * (halfWidth + 7), 0, 0, 4, 4], [side * (halfWidth + 11), 0, 0, 4, 4]] },
+    { seg: "bar", n: 6, tone: Tone.Bar, rings: [[side * (halfWidth - 5.5), 0, 0, 2.2, 2.2], [side * (halfWidth + 7), 0, 0, 2.2, 2.2]] },
+    { seg: "bar", n: 4, tone: Tone.Bar, rings: [[side * (halfWidth + 7), 0, 0, 5, 5], [side * (halfWidth + 11), 0, 0, 5, 5]] },
   ]);
-/** Lever arms: a flat bar from just behind the pivot out into each handle's block, wide in the swing plane. */
+/** Lever arms: steel like the handles, a flat bar wide in the swing plane from the axle out past each handle. */
 const leverArms = ({ length }: Lever, halfWidth: number): Part[] =>
   [1, -1].map((side): Part => {
     const s = side * (halfWidth + 9);
-    return { seg: LEVER_FRAME, n: 4, tone: Tone.Box, rings: [[-4, 0, s, 3, 1.7], [length, 0, s, 2.3, 1.5]] };
+    return { seg: LEVER_FRAME, n: 4, tone: Tone.Bar, rings: [[-5, 0, s, 3.6, 2.1], [length + 4, 0, s, 3.2, 2]] };
   });
 /**
  * A box as a 4-sided loft along its x axis: a 4-gon ring is the box inscribed in the

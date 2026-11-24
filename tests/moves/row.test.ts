@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import rowFile from "../../src/moves/chest-supported-row.json";
 import type { Move } from "../../src/moves/sample.ts";
 import { BODY, ELBOW_RANGE, JOINTS, RANGES, type Vec3 } from "../../src/moves/skeleton.ts";
-import { BACK, CHEST, N, dist, fist, fromVertical, handsOff, inTorso, most, nearestBox, onTorso, sampleLoop, sdBox } from "./loop.ts";
+import { BACK, CHEST, N, boxes, dist, fist, fromVertical, handsOff, inTorso, most, nearestBox, onFloor, onTorso, sampleLoop, sdBox, touch } from "./loop.ts";
 
 const move = rowFile as unknown as Move;
 const loop = sampleLoop(move);
@@ -12,6 +12,9 @@ const elbowBack = (f: (typeof loop)[number]) => -Math.max(inTorso(f.body, f.body
 const squeeze = most(loop, elbowBack);
 const pad = nearestBox(move, onTorso(first, CHEST));
 const floor = move.props.find((p) => p.kind === "floor");
+const floorY = floor?.kind === "floor" ? floor.y : 0;
+/** The boxes that stand on the floor and hold the chest pad up. */
+const posts = boxes(move).filter((b) => b !== pad && onFloor(b, floorY) && touch(b, pad));
 const deg = (r: number) => (r * 180) / Math.PI;
 
 describe("Chest-supported row loop, sampled 360 times", () => {
@@ -37,6 +40,20 @@ describe("Chest-supported row loop, sampled 360 times", () => {
     expect(gap).toBeGreaterThanOrEqual(-0.5);
     expect(gap).toBeLessThanOrEqual(1);
     for (const { body } of loop) expect(Math.abs(sdBox(onTorso(body, CHEST), pad) - gap)).toBeLessThan(1e-9);
+  });
+
+  test("the chest pad stands on a post that rises from the floor into it", () => {
+    expect(posts.length).toBeGreaterThan(0);
+  });
+
+  test("the machine stands: every box is joined to the floor through boxes that touch", () => {
+    const all = boxes(move);
+    const held = new Set(all.filter((b) => onFloor(b, floorY)));
+    for (let grew = true; grew; ) {
+      grew = false;
+      for (const b of all) if (!held.has(b) && [...held].some((h) => touch(b, h))) held.add(b), (grew = true);
+    }
+    expect(all.filter((b) => !held.has(b))).toEqual([]);
   });
 
   test("seated: the hip joint sits 6 to 13 cm over the seat top, inside its footprint", () => {
@@ -108,6 +125,14 @@ describe("Chest-supported row loop, sampled 360 times", () => {
     expect(Math.abs(deg(angle(squeeze) - angle(reach)))).toBeGreaterThanOrEqual(25);
     expect(pivot[0]).toBeGreaterThan(onTorso(first, CHEST)[0]);
     expect(sdBox([pivot[0], pivot[1], 0], nearestBox(move, [pivot[0], pivot[1], 0]))).toBeLessThanOrEqual(0);
+  });
+
+  test("the levers hang from the pad's post: the pivot sits in it, and at the start the handles hang below it", () => {
+    const { pivot } = move.lever!;
+    expect(posts.some((b) => sdBox([pivot[0], pivot[1], 0], b) <= 0)).toBe(true);
+    const handle = reach.pose.grip.at;
+    expect(handle[1]).toBeLessThan(pivot[1]);
+    expect(fromVertical(pivot, handle)).toBeLessThanOrEqual(15);
   });
 
   test("the hands never let go of the handles", () => {
