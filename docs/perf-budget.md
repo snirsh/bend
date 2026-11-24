@@ -12,6 +12,7 @@ The logging screen is opened mid-set, between racks, on a phone. It has to be us
 | Asset | Cap | Why |
 | --- | --- | --- |
 | Initial JS (all `<script>` and modulepreload chunks reachable from `index.html`) | 90 KB | React 19 + react-dom is about 60 KB gzip. The rest covers UI SDK parts, the engine and the app. Preact compat would cut this sharply but only counts if UI SDK works on it. |
+| Lazy JS (every other `dist/assets/*.js`: the loop code and one chunk per move) | 16 KB | Loads after first paint but still crosses a slow gym connection. Today 9.3 KB (renderer and player 7.6 KB, about 0.6 KB per move), so the cap leaves room for about ten more moves. |
 | CSS | 8 KB | One stylesheet, hand-written from the mockup tokens. `@ui-sdk/core/web.css` is not imported wholesale. |
 | Fonts | 60 KB total (raw woff2, already compressed) | The mockup's two variable fonts are 140 KB together. Subset both to Basic Latin plus the glyphs the UI uses (`× − ✓ · ’ …`), keep the weight axis. Preload only fonts that render in the first paint: both do (Geist for the text, Geist Mono for the weight and reps numbers). Measured with applied mobile throttling: without the Mono preload it lands 0.56 s after first paint, so the numbers paint in a fallback face and swap (CLS 0.0003); with it, Mono is ready 0.45 s before first paint at a cost of 43 ms FCP. |
 | Service worker | 3 KB | Hand-written precache, no workbox runtime. |
