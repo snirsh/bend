@@ -36,8 +36,8 @@ export const RANGES: Readonly<Record<JointName, readonly [min: number, max: numb
   ankle: [-50, 40], // dorsiflexion, + shin over the toes
 };
 
-/** Range of the elbow angle the arm IK may produce (flexion, degrees). */
-export const ELBOW_RANGE = [0, 150] as const;
+/** Range of the elbow angle the arm IK may produce (flexion, degrees). 155 is full flexion in a closed grip, e.g. hands just outside the shoulders on a high bar. */
+export const ELBOW_RANGE = [0, 155] as const;
 
 const HEAD = 178 / 7.5;
 /** Segment lengths and widths, cm. */

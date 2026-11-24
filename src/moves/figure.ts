@@ -23,13 +23,15 @@ type Part = { seg: Seg; n: number; rings: readonly Ring[]; tone?: Tone; bias?: n
 
 const BODY_PARTS: readonly Part[] = [
   // Pelvis block: glutes push back, a narrow crotch, the waist on top.
-  { seg: "torso", n: 8, rings: [[-10.5, 1, 0, 4, 6], [-5, -1.4, 0, 10, 14.8], [4, -2.2, 0, 11.6, 16.4], [13, -0.4, 0, 10.2, 15.4], [20, 0.8, 0, 8.6, 13.2]] },
+  { seg: "torso", n: 8, rings: [[-10.5, 1, 0, 4, 6], [-5, -0.8, 0, 9.2, 14.4], [4, -1.4, 0, 10.6, 15.8], [13, -0.2, 0, 9.8, 15], [20, 0.8, 0, 8.6, 13.2]] },
   // Ribcage and chest: deepest at the pecs, widest under the arms, a trapezius slope to the neck.
   { seg: "torso", n: 8, rings: [[18, 1, 0, 9.2, 13], [29, 2.4, 0, 11.2, 15], [40, 2.8, 0, 12.6, 17.6], [49, 1.6, 0, 12, 19.6], [55.5, -1, 0, 9.4, 16.8], [59.5, -2, 0, 6.2, 8]] },
   // Neck, from inside the chest up into the skull.
   { seg: "head", n: 6, rings: [[-9, 0.2, 0, 6, 6.2], [-1, 0.6, 0, 5.4, 5.6], [4, 1.2, 0, 5, 5.2]] },
   // Head: an egg with a jaw plane under a forward chin, the skull bulging behind the neck. 92% scale against the broad shoulders.
   { seg: "head", n: 8, rings: [[1.1,  5.7,  0.0,  2.02,  2.94],  [2.39,  3.31,  0.0,  5.89,  4.78],  [6.9,  2.21,  0.0,  7.54,  6.26],  [11.96,  1.29,  0.0,  8.46,  6.9],  [16.56,  0.55,  0.0,  7.18,  6.07],  [19.87,  -0.28,  0.0,  4.05,  3.77],  [20.98,  -0.55,  0.0,  1.47,  1.38]] },
+  // Nose: one small wedge, so the facing direction reads even from behind.
+  { seg: "head", n: 4, rings: [[9.6, 8.7, 0, 1.1, 1.1], [12.4, 10.4, 0, 0, 0]] },
 ];
 
 /** One side's limbs; each is placed twice, near and far. */
@@ -37,7 +39,7 @@ const LIMB_PARTS: readonly Part[] = [
   // Thigh (f = back): full at the top, quads forward, narrowing into the knee.
   { seg: "thigh", n: 8, rings: [[-6, 0, 0, 6.5, 6.5], [2, 0, 0.4, 9, 8.8], [14, -0.4, 0.3, 8.4, 7.9], [30, -0.9, 0, 6.8, 6.3], [40, -0.3, 0, 5.3, 5.3], [45, 0, 0, 4.8, 5]] },
   // Kneecap: a small facet on the front of the knee.
-  { seg: "thigh", n: 5, rings: [[40.5, -3.6, 0, 0, 0], [43.5, -3.9, 0, 2.6, 3], [46.5, -3.2, 0, 0, 0]], bias: 1 },
+  { seg: "thigh", n: 6, rings: [[40.5, -2.6, 0, 0, 0], [43.5, -3.2, 0, 2.2, 3], [46.5, -2.4, 0, 0, 0]], bias: 1 },
   // Shin (f = back): the calf bulges behind a straight shinbone, ankle bones at the end.
   { seg: "shin", n: 6, rings: [[-1.5, 0, 0, 4.6, 4.8], [3, 0.6, 0, 5.3, 5], [11, 2.6, 0, 6.2, 5.2], [24, 1.4, 0, 4.4, 3.9], [37, 0.3, 0, 3, 3], [41, 0.2, 0, 3.2, 3.5]] },
   // Foot (f = down): a rounded heel, the arch lifting off the floor under the instep, the ball, a toe box that tapers to the tip.
