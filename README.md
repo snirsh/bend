@@ -56,6 +56,7 @@ bun run dev        # http://localhost:47311
 bun run build      # dist/, with dist/sw.js listing every built file
 bun run preview    # serves dist/ on http://localhost:47310
 bun run size       # fails when dist/ breaks docs/perf-budget.md
+PORT=47320 bun run e2e  # PORT moves preview and Playwright; DEV_PORT moves dev
 bun run e2e        # Playwright against the preview build
 ```
 
