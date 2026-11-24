@@ -52,3 +52,20 @@ test("a paused rest keeps its remaining time through a reload", async ({ page })
   await expect(restTime(page)).toHaveText(paused);
   await expect(page.locator('[data-timer="rest"]')).toHaveAttribute("data-state", "paused");
 });
+
+test("a wall clock jumping back does not give rest time back, and an expired rest stays done", async ({ page }) => {
+  await page.clock.pauseAt(startedAt + 90_000);
+  await expect(restTime(page)).toHaveText("0:30");
+  await page.clock.setSystemTime(startedAt + 30_000);
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await expect(restTime(page)).toHaveText("0:30");
+
+  await page.clock.setSystemTime(startedAt + 125_000);
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await expect(page.locator('[data-timer="rest"]')).toHaveAttribute("data-state", "done");
+  await page.clock.setSystemTime(startedAt + 10_000);
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await page.reload();
+  await expect(page.locator('[data-timer="rest"]')).toHaveAttribute("data-state", "done");
+  await expect(restTime(page)).toHaveText("0:00");
+});

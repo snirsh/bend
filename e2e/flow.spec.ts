@@ -147,3 +147,34 @@ test("a failed save is reported, not hidden", async ({ page }) => {
   await logPrefilled(page);
   await expect(page.getByRole("alert")).toContainText("not saved");
 });
+
+test("a set is shown as logged only once its write commits; a reload while pending keeps the last saved state", async ({ page }) => {
+  await page.goto("/");
+  await importBackup(page, mockupHistory());
+  await logPrefilled(page);
+  await expect.poll(async () => (await savedWorkout(page))?.logged.length).toBe(1);
+
+  // Hold a readwrite transaction on the workout store open, so the next save waits behind it.
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        const open = indexedDB.open("bend");
+        open.onsuccess = () => {
+          const tx = open.result.transaction("state", "readwrite");
+          const spin = () => (tx.objectStore("state").get("nothing").onsuccess = spin);
+          spin();
+          resolve();
+        };
+      }),
+  );
+  await expect(page.getByRole("heading", { name: "Row · set 1 of 3" })).toBeVisible();
+  await page.getByRole("button", { name: "Log set" }).click();
+  await expect(page.getByRole("button", { name: "Saving…" })).toBeDisabled();
+  await expect(page.locator('.pill[data-state="done"]')).toHaveCount(1);
+  await expect(page.getByRole("heading", { name: "Row · set 1 of 3" })).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Row · set 1 of 3" })).toBeVisible();
+  await expect(page.locator('.pill[data-state="done"]')).toHaveCount(1);
+  expect((await savedWorkout(page))?.logged.length).toBe(1);
+});

@@ -5,6 +5,8 @@ import { day, ex, rough, same, session, sets } from "../fixtures/history.ts";
 import { ids } from "../fixtures/plan.ts";
 
 const AT = "2026-11-24T10:00:00.000Z";
+/** The device's local date when the file is imported: after every session in `history`. */
+const TODAY = day(30);
 
 const a0 = session(day(0), "A", [ex(ids.bench, sets([60, 10, 2], [60, 9, 2])), ex(ids.row, same(3, 50, 12, 1))]);
 const b2 = rough(day(2), "B", [ex(ids.squat, same(3, 80, 8, 2))]);
@@ -22,21 +24,21 @@ const fileWith = (edit: (file: Raw) => void): string => {
 };
 
 const rejected = (text: string): string => {
-  const result = parseBackup(text);
+  const result = parseBackup(text, TODAY);
   if (result.ok) throw new Error("expected the file to be rejected");
   return result.error;
 };
 
 describe("export and import", () => {
   test("an exported file imports back to the same sessions", () => {
-    expect(parseBackup(JSON.stringify(toBackup(history, AT)))).toEqual({
+    expect(parseBackup(JSON.stringify(toBackup(history, AT)), TODAY)).toEqual({
       ok: true,
       backup: { app: "bend", schemaVersion: 1, exportedAt: AT, sessions: history },
     });
   });
 
   test("an empty history round-trips", () => {
-    expect(parseBackup(JSON.stringify(toBackup([], AT)))).toEqual({
+    expect(parseBackup(JSON.stringify(toBackup([], AT)), TODAY)).toEqual({
       ok: true,
       backup: { app: "bend", schemaVersion: 1, exportedAt: AT, sessions: [] },
     });
@@ -65,11 +67,18 @@ describe("export and import", () => {
     ["an impossible date", (s: Raw) => (s.date = "2026-02-30"), ["session 2", "date"]],
     ["an unknown letter", (s: Raw) => (s.letter = "D"), ["session 2", "letter"]],
     ["an unknown tag", (s: Raw) => (s.tags = ["hungover"]), ["session 2", "tag"]],
+    ["no exercises", (s: Raw) => (s.exercises = []), ["session 2", "exercise"]],
+    ["a date after today", (s: Raw) => (s.date = day(31)), ["session 2", "after today", day(30)]],
     ["a missing exercise id", (s: Raw) => delete s.exercises[0].exerciseId, ["session 2", "exerciseId"]],
   ])("a bad session (%s) rejects the whole file, naming where", (_label, edit, mentions) => {
     const error = rejected(fileWith((f) => edit(f.sessions[1])));
     for (const m of mentions) expect(error).toContain(m);
   });
+});
+
+test("a session dated today is accepted", () => {
+  const todays = session(TODAY, "A", [ex(ids.bench, same(1, 60, 8, 2))]);
+  expect(parseBackup(JSON.stringify(toBackup([todays], AT)), TODAY).ok).toBe(true);
 });
 
 describe("mergeHistory", () => {
@@ -105,7 +114,7 @@ describe("mergeHistory", () => {
       schemaVersion: 1,
       app: "bend",
     });
-    const parsed = parseBackup(reordered);
+    const parsed = parseBackup(reordered, TODAY);
     if (!parsed.ok) throw new Error(parsed.error);
     expect(mergeHistory(history, parsed.backup.sessions)).toMatchObject({ added: [], duplicates: 1, merged: history });
   });

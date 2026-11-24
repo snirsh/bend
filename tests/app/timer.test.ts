@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { COOLDOWN_MS, REST_MS, idle, parseTimers, pause, resume, skip, start, view } from "../../src/app/timer.ts";
+import { COOLDOWN_MS, REST_MS, idle, msUntilChange, observe, parseTimers, pause, resume, skip, start, view } from "../../src/app/timer.ts";
 
 const T0 = 1_790_000_000_000;
 
@@ -75,6 +75,54 @@ describe("timer", () => {
   });
 });
 
+describe("observed time", () => {
+  test("a clock jumping back after 90 s of a running rest does not give time back", () => {
+    const seen = observe(start(idle(REST_MS), T0), T0 + 90_000);
+    expect(view(seen, T0 + 30_000)).toEqual({ kind: "running", remainingMs: 30_000, done: false });
+    expect(view(seen, T0 + 95_000).remainingMs).toBe(25_000);
+  });
+
+  test("an expired timer stays done when the clock jumps back", () => {
+    const expired = observe(start(idle(REST_MS), T0), T0 + 130_000);
+    expect(view(expired, T0 + 130_000)).toEqual({ kind: "done", remainingMs: 0, done: true });
+    expect(view(expired, T0 + 10_000)).toEqual({ kind: "done", remainingMs: 0, done: true });
+    expect(observe(expired, T0 + 10_000)).toEqual(expired);
+  });
+
+  test("observing a running timer before its end keeps it running", () => {
+    expect(observe(start(idle(REST_MS), T0), T0 + 119_999).kind).toBe("running");
+    expect(observe(start(idle(REST_MS), T0), T0 + 120_000).kind).toBe("done");
+  });
+
+  test("an expired timer can be started again or cleared", () => {
+    const expired = observe(start(idle(REST_MS), T0), T0 + 200_000);
+    expect(view(start(expired, T0 + 300_000), T0 + 300_000).remainingMs).toBe(120_000);
+    expect(view(skip(expired), T0)).toEqual({ kind: "idle", remainingMs: 120_000, done: false });
+    expect(pause(expired, T0 + 300_000)).toEqual(expired);
+  });
+
+  test("pausing after a backward jump keeps the least remaining time seen", () => {
+    const seen = observe(start(idle(REST_MS), T0), T0 + 90_000);
+    expect(view(pause(seen, T0 + 30_000), T0).remainingMs).toBe(30_000);
+  });
+});
+
+describe("msUntilChange", () => {
+  test("is the time until the shown second changes", () => {
+    const t = start(idle(REST_MS), T0);
+    expect(msUntilChange(t, T0)).toBe(1_000);
+    expect(msUntilChange(t, T0 + 250)).toBe(750);
+    expect(msUntilChange(t, T0 + 89_999)).toBe(1);
+    expect(msUntilChange(t, T0 + 119_500)).toBe(500);
+  });
+
+  test("is null when nothing will change", () => {
+    expect(msUntilChange(idle(REST_MS), T0)).toBeNull();
+    expect(msUntilChange(pause(start(idle(REST_MS), T0), T0 + 5_000), T0 + 6_000)).toBeNull();
+    expect(msUntilChange(observe(start(idle(REST_MS), T0), T0 + 200_000), T0 + 200_000)).toBeNull();
+  });
+});
+
 describe("parseTimers", () => {
   const fresh = { rest: idle(REST_MS), cooldown: idle(COOLDOWN_MS) };
 
@@ -103,6 +151,16 @@ describe("parseTimers", () => {
     ["paused with more left than its duration", JSON.stringify({ rest: { kind: "paused", durationMs: 120_000, remainingMs: 120_001 } })],
   ])("corrupt input (%s) falls back to idle timers", (_label, text) => {
     expect(parseTimers(text)).toEqual(fresh);
+  });
+
+  test("an expired timer survives a reload as done", () => {
+    const timers = { rest: observe(start(idle(REST_MS), T0), T0 + 200_000), cooldown: idle(COOLDOWN_MS) };
+    expect(parseTimers(JSON.stringify(timers))).toEqual(timers);
+  });
+
+  test("a running timer stored before seenAt existed reads as seen at its start", () => {
+    const legacy = { rest: { kind: "running", durationMs: 120_000, startedAt: T0, endsAt: T0 + 120_000 } };
+    expect(view(parseTimers(JSON.stringify(legacy)).rest, T0 + 90_000).remainingMs).toBe(30_000);
   });
 
   test("one corrupt timer does not reset the other", () => {
